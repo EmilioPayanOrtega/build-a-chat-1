@@ -7,3 +7,6 @@ node_modules
 .env.development
 .env.test
 .env.production
+myenv
+docker_script.sh
+__pycache__
