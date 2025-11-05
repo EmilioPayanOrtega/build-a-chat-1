@@ -1,7 +1,7 @@
+from flask import Flask, render_template, request, jsonify
+
 from gevent import monkey
 monkey.patch_all()
-
-from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room
 import MySQLdb
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -10,7 +10,11 @@ from menu_config import menu_config
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode='gevent', manage_session=False)
+
+socketio = SocketIO(app, 
+                   async_mode='gevent', 
+                   manage_session=False, 
+                   cors_allowed_origins=["http://localhost:5173", "http://localhost:3000"])
 
 chats = {}
 clientes_conectados = {}
@@ -18,14 +22,42 @@ clientes_conectados = {}
 # Database connection setup
 DB_HOST = 'localhost'  # Change as needed
 DB_USER = 'root'       # Change as needed
-DB_PASSWORD = ''       # Change as needed
-DB_NAME = 'chatbotdb'  # Change as needed
+DB_PASSWORD = 'PuraGenteDelCoachMoy'  # Must match docker_script.sh ROOT_PASSWORD
+DB_NAME = 'chatbotdb'  # Must match docker_script.sh DATABASE_NAME
 
 def get_db_connection():
     return MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME, charset='utf8')
 
-@app.route('/signup', methods=['POST'])
+# Explicit CORS headers - ensure they work with gevent
+# Use manual handlers instead of Flask-CORS to avoid conflicts
+@app.after_request
+def after_request(response):
+    origin = request.headers.get('Origin')
+    if origin and origin in ['http://localhost:5173', 'http://localhost:3000']:
+        # Use set instead of add to avoid duplicate headers
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    return response
+
+@app.before_request
+def handle_preflight():
+    if request.method == 'OPTIONS':
+        origin = request.headers.get('Origin')
+        if origin and origin in ['http://localhost:5173', 'http://localhost:3000']:
+            response = jsonify({})
+            response.headers['Access-Control-Allow-Origin'] = origin
+            response.headers['Access-Control-Allow-Credentials'] = 'true'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+            response.headers['Access-Control-Max-Age'] = '3600'
+            return response
+
+@app.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
     data = request.json
     nombre_usuario = data.get('nombre_usuario')
     email = data.get('email')
@@ -52,8 +84,10 @@ def signup():
         cursor.close()
         conn.close()
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200
     data = request.json
     nombre_usuario = data.get('nombre_usuario')
     password = data.get('password')
@@ -153,7 +187,15 @@ def handle_message(data):
     emit('message_admin', {'user_id': user_id, 'message': msg}, broadcast=True)
 
     if text == "menu":
-        emit('show_menu', room=user_id)
+        # Send main menu options
+        main_menu_options = [
+            {"id": "menu_ambar", "label": "Ambar"},
+            {"id": "menu_asp", "label": "Aspirantes"},
+            {"id": "menu_ofe", "label": "Oferta Educativa"},
+            {"id": "menu_est", "label": "Estudiantes"},
+            {"id": "menu_map", "label": "Mapa de instalaciones"}
+        ]
+        emit('show_menu', {'menu': main_menu_options}, room=user_id)
 
 @socketio.on('menu_option_selected')
 def handle_menu_option(data):
@@ -268,4 +310,4 @@ def handle_return_to_main_menu():
     emit('show_menu', room=user_id)
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=5001)
