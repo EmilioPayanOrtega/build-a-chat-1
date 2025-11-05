@@ -63,7 +63,7 @@ const messageType = ref<'ok' | 'error'>('ok');
 const showErrors = ref(false);
 const router = useRouter();
 
-function onSubmit(){
+async function onSubmit(){
   showErrors.value = false;
   message.value = '';
   if (!identifier.value || !password.value || password.value.length < 6) {
@@ -71,11 +71,31 @@ function onSubmit(){
     return;
   }
   loading.value = true;
-  setTimeout(() => {
-    message.value = '¡Inicio de sesión exitoso!';
-    messageType.value = 'ok';
+  try {
+    const response = await login({
+      nombre_usuario: identifier.value,
+      password: password.value
+    });
+    if (response.success) {
+      message.value = response.msg || '¡Inicio de sesión exitoso!';
+      messageType.value = 'ok';
+      // Store user info (you can enhance this with proper session management)
+      localStorage.setItem('user_id', String(response.user_id));
+      localStorage.setItem('username', identifier.value);
+      // Navigate to chat page after a brief delay
+      setTimeout(() => {
+        router.push('/chat');
+      }, 1000);
+    } else {
+      message.value = response.error || 'Error al iniciar sesión';
+      messageType.value = 'error';
+      loading.value = false;
+    }
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : 'Error al iniciar sesión';
+    messageType.value = 'error';
     loading.value = false;
-  }, 1200);
+  }
 }
 </script>
 

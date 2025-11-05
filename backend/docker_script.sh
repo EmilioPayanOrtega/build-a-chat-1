@@ -7,6 +7,17 @@ MYSQL_VOLUME="mysql_data"
 MYSQL_PORT="3306"
 IMAGE_NAME="mysql:latest"
 DATABASE_NAME="chatbotdb"
+
+# SQL initialization script
+SQL_INIT="
+CREATE DATABASE IF NOT EXISTS ${DATABASE_NAME};
+USE ${DATABASE_NAME};
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL
+);"
 # -------------------------------
 
 echo "--- MySQL Docker Setup Script ---"

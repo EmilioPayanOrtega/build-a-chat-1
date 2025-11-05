@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 
 from gevent import monkey
 monkey.patch_all()
@@ -10,6 +11,11 @@ from menu_config import menu_config
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+app.config['DEBUG'] = True  # Enable debug mode
+CORS(app, resources={r"/*": {
+    "origins": ["http://localhost:5173", "http://localhost:3000"],
+    "supports_credentials": True
+}})
 
 socketio = SocketIO(app, 
                    async_mode='gevent', 
@@ -20,26 +26,27 @@ chats = {}
 clientes_conectados = {}
 
 # Database connection setup
-DB_HOST = 'localhost'  # Change as needed
+DB_HOST = '127.0.0.1'  # Use IP instead of localhost to force TCP/IP
 DB_USER = 'root'       # Change as needed
 DB_PASSWORD = 'PuraGenteDelCoachMoy'  # Must match docker_script.sh ROOT_PASSWORD
 DB_NAME = 'chatbotdb'  # Must match docker_script.sh DATABASE_NAME
+DB_PORT = 3306        # Match the exposed port in docker_script.sh
 
 def get_db_connection():
-    return MySQLdb.connect(host=DB_HOST, user=DB_USER, passwd=DB_PASSWORD, db=DB_NAME, charset='utf8')
+    try:
+        return MySQLdb.connect(
+            host=DB_HOST,
+            user=DB_USER,
+            passwd=DB_PASSWORD,
+            db=DB_NAME,
+            port=DB_PORT,
+            charset='utf8'
+        )
+    except MySQLdb.Error as e:
+        app.logger.error(f"Error connecting to MySQL: {str(e)}")
+        raise
 
-# Explicit CORS headers - ensure they work with gevent
-# Use manual handlers instead of Flask-CORS to avoid conflicts
-@app.after_request
-def after_request(response):
-    origin = request.headers.get('Origin')
-    if origin and origin in ['http://localhost:5173', 'http://localhost:3000']:
-        # Use set instead of add to avoid duplicate headers
-        response.headers['Access-Control-Allow-Origin'] = origin
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    return response
+# CORS configuration is handled by Flask-CORS
 
 @app.before_request
 def handle_preflight():
@@ -58,31 +65,44 @@ def handle_preflight():
 def signup():
     if request.method == 'OPTIONS':
         return jsonify({}), 200
+    
     data = request.json
     nombre_usuario = data.get('nombre_usuario')
     email = data.get('email')
     password = data.get('password')
+    
     if not (nombre_usuario and email and password):
         return jsonify({'success': False, 'error': 'Faltan datos'}), 400
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    
+    conn = None
+    cursor = None
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
         cursor.execute('SELECT id FROM usuarios WHERE nombre_usuario=%s OR email=%s', (nombre_usuario, email))
         if cursor.fetchone():
             return jsonify({'success': False, 'error': 'Usuario o email ya existe'}), 409
-        password_hash = generate_password_hash(password)
+            
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         cursor.execute(
             'INSERT INTO usuarios (nombre_usuario, email, password_hash) VALUES (%s, %s, %s)',
             (nombre_usuario, email, password_hash)
         )
         conn.commit()
-        return jsonify({'success': True, 'msg': 'Usuario registrado exitosamente'})
+        return jsonify({'success': True, 'msg': 'Usuario registrado exitosamente'}), 201
+        
     except Exception as e:
-        conn.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        if conn:
+            conn.rollback()
+        app.logger.error(f"Error en signup: {str(e)}")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
+        
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 @app.route('/login', methods=['POST', 'OPTIONS'])
 def login():

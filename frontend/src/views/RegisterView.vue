@@ -104,7 +104,7 @@ function emailIsValid(email: string) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
 }
 
-function onSubmit(){
+async function onSubmit(){
   message.value = '';
   showErrors.value = false;
   if (
@@ -120,12 +120,30 @@ function onSubmit(){
     return;
   }
   loading.value = true;
-  setTimeout(() => {
-    message.value = '¡Registro exitoso!';
-    messageType.value = 'ok';
+  try {
+    const response = await signup({
+      nombre_usuario: username.value,
+      email: email.value,
+      password: password.value
+    });
+    if (response.success) {
+      message.value = response.msg || '¡Registro exitoso!';
+      messageType.value = 'ok';
+      resetForm();
+      // Navigate to login page after successful registration
+      setTimeout(() => {
+        router.push('/login');
+      }, 1500);
+    } else {
+      message.value = response.error || 'Error al registrar usuario';
+      messageType.value = 'error';
+      loading.value = false;
+    }
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : 'Error al registrar usuario';
+    messageType.value = 'error';
     loading.value = false;
-    resetForm();
-  }, 1400);
+  }
 }
 
 function resetForm(){
