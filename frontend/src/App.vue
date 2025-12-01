@@ -8,19 +8,24 @@
 
     <header class="sticky top-0 z-50 w-full border-b border-white/20 bg-white/70 backdrop-blur-md shadow-sm" v-if="!isChatPage">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
-        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <RouterLink to="/" class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
           Build a Chat
-        </h1>
+        </RouterLink>
         <nav class="flex items-center gap-6 font-medium text-sm text-slate-600">
           <template v-if="!isAuthenticated">
             <RouterLink to="/register" class="hover:text-blue-600 transition-colors">Registrarse</RouterLink>
             <RouterLink to="/login" class="hover:text-blue-600 transition-colors">Iniciar sesión</RouterLink>
-            <a href="#" class="hover:text-blue-600 transition-colors">Crear chatbot</a>
+            <RouterLink to="/create-chatbot" class="hover:text-blue-600 transition-colors">Crear chatbot</RouterLink>
             <a href="#" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
           </template>
-          <span v-else class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200">
-            <div class="w-2 h-2 rounded-full bg-green-500"></div>
-            {{ username }}
+          <span v-else class="flex items-center gap-4">
+            <span class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200">
+              <div class="w-2 h-2 rounded-full bg-green-500"></div>
+              {{ username }}
+            </span>
+            <button @click="logout" class="text-red-500 hover:text-red-600 transition-colors font-medium">
+              Cerrar sesión
+            </button>
           </span>
         </nav>
       </div>
@@ -38,13 +43,26 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuth } from './store/auth';
 
 const route = useRoute();
+const router = useRouter();
+const { isAuthenticated, state, logout: authLogout } = useAuth();
 
 const isChatPage = computed(() => route.path === '/chat');
-const isAuthenticated = computed(() => localStorage.getItem('user_id') !== null);
-const username = computed(() => localStorage.getItem('username') || 'Usuario');
+const username = computed(() => state.username || 'Usuario');
+
+async function logout() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (e) {
+    console.error('Logout failed', e);
+  } finally {
+    authLogout();
+    router.push('/login');
+  }
+}
 </script>
 
 <style>

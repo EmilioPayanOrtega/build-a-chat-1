@@ -62,6 +62,7 @@
 import { ref } from 'vue';
 import { login } from '../services/api';
 import { useRouter } from 'vue-router';
+import { useAuth } from '../store/auth';
 
 const identifier = ref('');
 const password = ref('');
@@ -70,6 +71,7 @@ const message = ref('');
 const messageType = ref<'ok' | 'error'>('ok');
 const showErrors = ref(false);
 const router = useRouter();
+const { login: authLogin } = useAuth();
 
 async function onSubmit(){
   showErrors.value = false;
@@ -87,10 +89,11 @@ async function onSubmit(){
     if (response.success) {
       message.value = response.msg || '¡Inicio de sesión exitoso!';
       messageType.value = 'ok';
-      // Store user info (you can enhance this with proper session management)
-      localStorage.setItem('user_id', String(response.user_id));
-      localStorage.setItem('username', identifier.value);
-      // Navigate to chat page after a brief delay
+      
+      // Update global auth state
+      authLogin(String(response.user_id), identifier.value);
+      
+      // Navigate to dashboard after a brief delay
       setTimeout(() => {
         router.push('/dashboard');
       }, 1000);

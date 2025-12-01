@@ -67,7 +67,7 @@ def create_app(test_config=None):
 
     # Register Blueprints
     from .routes import main as main_blueprint
-    app.register_blueprint(main_blueprint)
+    app.register_blueprint(main_blueprint, url_prefix='/api')
 
     # Import events to register handlers
     from . import events

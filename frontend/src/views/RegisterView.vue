@@ -98,6 +98,7 @@
 import { ref } from 'vue';
 import { signup } from '../services/api';
 import { useRouter } from 'vue-router';
+// import { useAuth } from '../store/auth'; // Optional: Auto-login after register
 
 const username = ref('');
 const email = ref('');
@@ -108,6 +109,7 @@ const message = ref('');
 const messageType = ref<'ok' | 'error'>('ok');
 const showErrors = ref(false);
 const router = useRouter();
+// const { login: authLogin } = useAuth(); // Optional
 
 function emailIsValid(email: string) {
   return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);

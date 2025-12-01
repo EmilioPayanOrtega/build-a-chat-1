@@ -8,21 +8,19 @@
           Mapa de Conocimiento
         </h2>
         <div class="flex gap-2">
-          <button class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Zoom In">+</button>
-          <button class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500" title="Zoom Out">-</button>
+          <!-- Controls are now inside TreeVisualization -->
         </div>
       </div>
       
-      <!-- Placeholder for D3/VueFlow -->
-      <div class="flex-1 bg-slate-50 relative overflow-hidden flex items-center justify-center">
-        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;"></div>
-        <div class="text-center p-8">
-          <div class="w-24 h-24 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center animate-pulse">
-            <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-          </div>
-          <p class="text-gray-500 font-medium">Visualización del Árbol</p>
-          <p class="text-sm text-gray-400 mt-1">(Próximamente: Integración con D3.js/VueFlow)</p>
+      <!-- Tree Visualization -->
+      <div class="flex-1 bg-slate-50 relative overflow-hidden">
+        <div v-if="loading" class="absolute inset-0 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
+        <div v-else-if="error" class="absolute inset-0 flex items-center justify-center text-red-500 p-4 text-center">
+          {{ error }}
+        </div>
+        <TreeVisualization v-else :data="treeData" />
       </div>
     </div>
 
@@ -35,7 +33,7 @@
             AI
           </div>
           <div>
-            <h3 class="font-bold text-gray-800">Asistente Virtual</h3>
+            <h3 class="font-bold text-gray-800">{{ chatbotTitle || 'Asistente Virtual' }}</h3>
             <p class="text-xs text-green-500 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
               En línea
@@ -77,8 +75,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import TreeVisualization from '../components/TreeVisualization.vue';
 
 const route = useRoute();
 const chatbotId = route.params.id;
@@ -88,6 +87,30 @@ const messages = ref([
 ]);
 
 const newMessage = ref('');
+const treeData = ref(null);
+const chatbotTitle = ref('');
+const loading = ref(true);
+const error = ref('');
+
+async function fetchChatbotData() {
+  try {
+    loading.value = true;
+    const response = await fetch(`/api/chatbots/${chatbotId}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      treeData.value = data.tree;
+      chatbotTitle.value = data.chatbot.title;
+    } else {
+      error.value = data.error || 'Failed to load chatbot data';
+    }
+  } catch (e) {
+    error.value = 'Error connecting to server';
+    console.error(e);
+  } finally {
+    loading.value = false;
+  }
+}
 
 function sendMessage() {
   if (!newMessage.value.trim()) return;
@@ -106,4 +129,8 @@ function sendMessage() {
     });
   }, 1000);
 }
+
+onMounted(() => {
+  fetchChatbotData();
+});
 </script>

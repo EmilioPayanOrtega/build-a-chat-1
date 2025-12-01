@@ -16,6 +16,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/ChatbotView.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/create-chatbot',
+    name: 'create-chatbot',
+    component: () => import('../views/CreateChatbotView.vue'),
+    meta: { requiresAuth: true }
+  },
   // Redirect old chat route to dashboard
   { path: '/chat', redirect: '/dashboard' }
 ];
