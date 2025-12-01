@@ -163,6 +163,7 @@ def delete_chatbot_route(chatbot_id):
         return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
     except Exception as e:
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        
 @main.route('/creator/sessions', methods=['GET'])
 @login_required
 def list_creator_sessions_route():

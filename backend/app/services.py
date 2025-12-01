@@ -248,3 +248,23 @@ def ask_chatbot_session(session_id, current_node_id, query):
     db.session.commit()
     
     return ai_response_text
+
+def get_creator_sessions(creator_id):
+    """
+    Returns all chat sessions for chatbots owned by the creator.
+    """
+    # Join ChatSession with Chatbot to filter by creator_id
+    sessions = db.session.query(ChatSession).join(Chatbot).filter(Chatbot.creator_id == creator_id).all()
+    return sessions
+
+def switch_session_to_human(session_id):
+    """
+    Updates session type to human_support.
+    """
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Session not found")
+    
+    session.type = 'human_support'
+    db.session.commit()
+    return session
