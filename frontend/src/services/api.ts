@@ -19,7 +19,7 @@ async function request<T>(path: string, options: RequestInit): Promise<ApiRespon
 }
 
 export function login(payload: { nombre_usuario: string; password: string }) {
-  return request<{ msg: string; user_id: number }>(`/auth/login`, {
+  return request<{ msg: string; user_id: number; role: string }>(`/auth/login`, {
     method: 'POST',
     body: JSON.stringify({
       username: payload.nombre_usuario,

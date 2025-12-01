@@ -20,7 +20,7 @@
             <RouterLink to="/creator/chats" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
               Soporte
             </RouterLink>
-            <RouterLink to="/create-chatbot" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+            <RouterLink v-if="canCreateChatbots" to="/create-chatbot" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
               Crear chatbot
             </RouterLink>
           </template>
@@ -56,7 +56,7 @@ import { useAuth } from './store/auth';
 
 const route = useRoute();
 const router = useRouter();
-const { isAuthenticated, state, logout: authLogout } = useAuth();
+const { isAuthenticated, state, logout: authLogout, canCreateChatbots } = useAuth();
 
 const isChatPage = computed(() => route.path === '/chat');
 const username = computed(() => state.username || 'Usuario');

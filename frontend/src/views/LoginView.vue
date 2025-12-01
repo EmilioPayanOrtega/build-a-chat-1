@@ -91,7 +91,7 @@ async function onSubmit(){
       messageType.value = 'ok';
       
       // Update global auth state
-      authLogin(String(response.user_id), identifier.value);
+      authLogin(String(response.user_id), identifier.value, response.role);
       
       // Navigate to dashboard after a brief delay
       setTimeout(() => {
