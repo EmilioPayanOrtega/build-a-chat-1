@@ -146,3 +146,20 @@ def delete_chatbot_route(chatbot_id):
         return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
     except Exception as e:
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
+@main.route('/creator/sessions', methods=['GET'])
+@login_required
+def list_creator_sessions_route():
+    if current_user.role != 'creator':
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        
+    sessions = get_creator_sessions(current_user.id)
+    
+    return jsonify({
+        'success': True,
+        'sessions': [{
+            'id': s.id,
+            'chatbot_title': s.chatbot.title,
+            'user_id': s.user_id, # Could fetch username if needed
+            'created_at': s.created_at.isoformat()
+        } for s in sessions]
+    }), 200

@@ -8,17 +8,25 @@
 
     <header class="sticky top-0 z-50 w-full border-b border-white/20 bg-white/70 backdrop-blur-md shadow-sm" v-if="!isChatPage">
       <div class="container mx-auto px-4 h-16 flex items-center justify-between">
-        <RouterLink to="/" class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+        <RouterLink :to="isAuthenticated ? '/dashboard' : '/'" class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
           Build a Chat
         </RouterLink>
         <nav class="flex items-center gap-6 font-medium text-sm text-slate-600">
           <template v-if="!isAuthenticated">
             <RouterLink to="/register" class="hover:text-blue-600 transition-colors">Registrarse</RouterLink>
             <RouterLink to="/login" class="hover:text-blue-600 transition-colors">Iniciar sesión</RouterLink>
-            <RouterLink to="/create-chatbot" class="hover:text-blue-600 transition-colors">Crear chatbot</RouterLink>
-            <a href="#" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
           </template>
-          <span v-else class="flex items-center gap-4">
+          <template v-else>
+            <RouterLink to="/creator/chats" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+              Soporte
+            </RouterLink>
+            <RouterLink to="/create-chatbot" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+              Crear chatbot
+            </RouterLink>
+          </template>
+          <a href="#" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
+          
+          <span v-if="isAuthenticated" class="flex items-center gap-4">
             <span class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200">
               <div class="w-2 h-2 rounded-full bg-green-500"></div>
               {{ username }}
