@@ -5,8 +5,7 @@ from app.models import db
 @pytest.fixture
 def app():
     from sqlalchemy.pool import StaticPool
-    app = create_app()
-    app.config.update({
+    app = create_app(test_config={
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "SQLALCHEMY_POOLCLASS": StaticPool,
