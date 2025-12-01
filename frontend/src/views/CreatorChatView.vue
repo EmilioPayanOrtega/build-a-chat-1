@@ -141,8 +141,10 @@ function initSocket(sessionId: number) {
 
   socket.on('message', (data: { user_id: number, content: string }) => {
     const isMe = String(data.user_id) === String(authState.userId);
-    messages.value.push({ text: data.content, isMe });
-    scrollToBottom();
+    if (!isMe) {
+      messages.value.push({ text: data.content, isMe });
+      scrollToBottom();
+    }
   });
   
   socket.on('status', (data: { msg: string }) => {

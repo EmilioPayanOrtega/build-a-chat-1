@@ -27,16 +27,19 @@
     <!-- Right Panel: Chat Interface -->
     <div class="w-96 bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
       <!-- Chat Header -->
-      <div class="p-4 border-b border-gray-100 bg-white/50">
+      <div class="p-4 border-b border-gray-100 bg-white/50 transition-colors duration-300" :class="{'bg-amber-50': isHumanSupport}">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
-            AI
+          <div 
+            class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-md transition-colors duration-300"
+            :class="isHumanSupport ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'"
+          >
+            {{ isHumanSupport ? 'HS' : 'AI' }}
           </div>
           <div>
-            <h3 class="font-bold text-gray-800">{{ chatbotTitle || 'Asistente Virtual' }}</h3>
-            <p class="text-xs text-green-500 flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-              En línea
+            <h3 class="font-bold text-gray-800">{{ isHumanSupport ? 'Soporte Humano' : (chatbotTitle || 'Asistente Virtual') }}</h3>
+            <p class="text-xs flex items-center gap-1" :class="isHumanSupport ? 'text-amber-600' : 'text-green-500'">
+              <span class="w-1.5 h-1.5 rounded-full" :class="isHumanSupport ? 'bg-amber-500' : 'bg-green-500'"></span>
+              {{ isHumanSupport ? 'Esperando agente...' : 'En línea' }}
             </p>
           </div>
         </div>
@@ -140,6 +143,7 @@ function initSocket(sessId: number) {
   });
 
   socket.on('session_updated', (data: { type: string }) => {
+    console.log('Session updated event received:', data);
     if (data.type === 'human_support') {
       isHumanSupport.value = true;
     }
@@ -235,7 +239,11 @@ async function sendMessage() {
 }
 
 function requestHumanSupport() {
-  if (!sessionId.value) return;
+  console.log('Requesting human support...', { sessionId: sessionId.value, userId: authState.userId, socketConnected: socket?.connected });
+  if (!sessionId.value) {
+    console.error('No session ID');
+    return;
+  }
   socket?.emit('request_human', {
     session_id: sessionId.value,
     user_id: authState.userId

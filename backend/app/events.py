@@ -11,7 +11,14 @@ def on_join(data):
     """
     session_id = data.get('session_id')
     user_id = data.get('user_id')
-    print(f"DEBUG: on_join called for session {session_id}, user {user_id}")
+    
+    if user_id:
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            pass # Keep as is if not convertible, though it should be
+            
+    print(f"DEBUG: on_join called for session {session_id}, user {user_id} (type: {type(user_id)})")
     
     if not session_id or not user_id:
         return
@@ -33,6 +40,12 @@ def on_message(data):
     user_id = data.get('user_id')
     content = data.get('content')
     
+    if user_id:
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            pass
+
     if not (session_id and user_id and content):
         return
 
@@ -59,6 +72,12 @@ def on_request_human(data):
     """
     session_id = data.get('session_id')
     user_id = data.get('user_id')
+    
+    if user_id:
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            pass
     
     if not session_id or not user_id:
         return

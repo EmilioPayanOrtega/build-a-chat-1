@@ -17,7 +17,7 @@
             <RouterLink to="/login" class="hover:text-blue-600 transition-colors">Iniciar sesión</RouterLink>
           </template>
           <template v-else>
-            <RouterLink to="/creator/chats" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+            <RouterLink v-if="canCreateChatbots" to="/creator/chats" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
               Soporte
             </RouterLink>
             <RouterLink v-if="canCreateChatbots" to="/create-chatbot" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">
