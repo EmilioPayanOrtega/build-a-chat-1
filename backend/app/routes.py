@@ -8,10 +8,8 @@ from .services import (
 
 main = Blueprint('main', __name__)
 
-@main.route('/auth/register', methods=['POST', 'OPTIONS'])
+@main.route('/auth/register', methods=['POST'])
 def register():
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
     
     data = request.json
     try:
@@ -22,10 +20,8 @@ def register():
     except Exception as e:
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
-@main.route('/auth/login', methods=['POST', 'OPTIONS'])
+@main.route('/auth/login', methods=['POST'])
 def login():
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
     
     data = request.json
     try:
@@ -45,10 +41,8 @@ def logout():
     logout_user()
     return jsonify({'success': True, 'msg': 'Logged out'}), 200
 
-@main.route('/chat-sessions', methods=['POST', 'OPTIONS'])
+@main.route('/chat-sessions', methods=['POST'])
 def create_chat_session_route():
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
         
     data = request.json
     chatbot_id = data.get('chatbot_id')
@@ -65,10 +59,8 @@ def create_chat_session_route():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@main.route('/chatbots/<int:chatbot_id>/ask-ai', methods=['POST', 'OPTIONS'])
+@main.route('/chatbots/<int:chatbot_id>/ask-ai', methods=['POST'])
 def ask_ai_route(chatbot_id):
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
     
     data = request.json
     current_node_id = data.get('current_node_id')
@@ -85,10 +77,8 @@ def ask_ai_route(chatbot_id):
     except Exception as e:
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
-@main.route('/chatbots', methods=['POST', 'OPTIONS'])
+@main.route('/chatbots', methods=['POST'])
 def create_chatbot_route():
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
     
     data = request.json
     try:
@@ -113,10 +103,8 @@ def create_chatbot_route():
     except Exception as e:
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
-@main.route('/chatbots/<int:chatbot_id>', methods=['GET', 'OPTIONS'])
+@main.route('/chatbots/<int:chatbot_id>', methods=['GET'])
 def get_chatbot_route(chatbot_id):
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
     
     chatbot = get_chatbot(chatbot_id)
     if not chatbot:
@@ -145,10 +133,8 @@ def list_chatbots_route():
         'chatbots': [{'id': c.id, 'title': c.title, 'description': c.description} for c in chatbots]
     }), 200
 
-@main.route('/chatbots/<int:chatbot_id>', methods=['DELETE', 'OPTIONS'])
+@main.route('/chatbots/<int:chatbot_id>', methods=['DELETE'])
 def delete_chatbot_route(chatbot_id):
-    if request.method == 'OPTIONS':
-        return jsonify({}), 200
 
     data = request.json # Need user_id for auth
     user_id = data.get('user_id')
