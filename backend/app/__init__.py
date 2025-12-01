@@ -40,7 +40,5 @@ def create_app():
 
     # Import events to register handlers
     from . import events
-
-
-
+    
     return app
