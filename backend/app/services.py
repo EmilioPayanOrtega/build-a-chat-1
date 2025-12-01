@@ -76,45 +76,11 @@ def _save_tree_nodes(chatbot_id, tree_data, parent_id=None):
         _save_tree_nodes(chatbot_id, child, node.id)
 
 def get_chatbot(chatbot_id):
-    chatbot = db.session.get(Chatbot, chatbot_id)
-    if not chatbot:
-        return None
-    return chatbot
+    return db.session.get(Chatbot, chatbot_id)
 
 def get_chatbot_tree(chatbot_id):
     nodes = Node.query.filter_by(chatbot_id=chatbot_id).all()
     return nodes_to_json(nodes)
-
-def ask_chatbot(chatbot_id, current_node_id, query):
-    """
-    Queries the AI with context from the current node and its immediate children.
-    """
-    # 1. Fetch current node
-    current_node = db.session.get(Node, current_node_id)
-    if not current_node or current_node.chatbot_id != chatbot_id:
-        raise ValueError("Node not found or does not belong to this chatbot")
-        
-    # 2. Fetch children
-    children = Node.query.filter_by(parent_node_id=current_node_id).all()
-    
-    # 3. Construct Context
-    context_parts = []
-    context_parts.append(f"Current Topic: {current_node.label}")
-    if current_node.content:
-        context_parts.append(f"Details: {current_node.content}")
-        
-    if children:
-        context_parts.append("Sub-topics:")
-        for child in children:
-            child_info = f"- {child.label}"
-            if child.content:
-                child_info += f": {child.content}"
-            context_parts.append(child_info)
-            
-    context = "\n".join(context_parts)
-    
-    # 4. Call AI
-    return generate_response(context, query)
 
 def list_chatbots(search_query=None):
     query = Chatbot.query.filter_by(is_active=True, visibility='public')
@@ -174,10 +140,7 @@ def save_message(session_id, sender_id, content):
     if not session:
         raise ValueError("Session not found")
         
-    sender_type = 'user'
-    if sender_id != session.user_id:
-        # If not the session owner, assume creator (since we validated access)
-        sender_type = 'creator'
+    sender_type = 'user' if sender_id == session.user_id else 'creator'
 
     message = Message(
         chat_session_id=session_id,
@@ -189,3 +152,35 @@ def save_message(session_id, sender_id, content):
     db.session.add(message)
     db.session.commit()
     return message
+
+def ask_chatbot(chatbot_id, current_node_id, query):
+    """
+    Queries the AI with context from the current node and its immediate children.
+    """
+    # 1. Fetch current node
+    current_node = db.session.get(Node, current_node_id)
+    if not current_node or current_node.chatbot_id != chatbot_id:
+        raise ValueError("Node not found or does not belong to this chatbot")
+        
+    # 2. Fetch children
+    children = Node.query.filter_by(parent_node_id=current_node_id).all()
+    
+    # 3. Construct Context
+    context_parts = []
+    context_parts.append(f"Current Topic: {current_node.label}")
+    if current_node.content:
+        context_parts.append(f"Details: {current_node.content}")
+        
+    if children:
+        context_parts.append("Sub-topics:")
+        for child in children:
+            child_info = f"- {child.label}"
+            if child.content:
+                child_info += f": {child.content}"
+            context_parts.append(child_info)
+            
+    context = "\n".join(context_parts)
+    
+    # 4. Call AI
+    return generate_response(context, query)
+    

@@ -52,11 +52,11 @@ The server will start on `http://127.0.0.1:5001`.
 
 To run the unit test suite:
 ```bash
-python run_tests.py
+python run_tests.py --all
 ```
-This runs all tests using `pytest` and an in-memory SQLite database, ensuring no changes are made to your local MySQL database.
+This runs both the unit tests (using `pytest`) and the End-to-End verification script.
 
-For a detailed explanation of our testing strategy and the End-to-End Verification script, see [TESTING.md](TESTING.md).
+For more options (e.g. running only unit tests or only E2E), see [TESTING.md](TESTING.md).
 
 ## API Endpoints
 
