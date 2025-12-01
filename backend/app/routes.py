@@ -4,6 +4,32 @@ from flask_login import login_user, logout_user, current_user, login_required
 from .services import (
     register_user, authenticate_user, 
     create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
+    create_chat_session, ask_chatbot_session, get_creator_sessions, get_session_messages,
+    send_contact_email, resolve_chat_session
+)
+
+main = Blueprint('main', __name__)
+
+@main.route('/contact', methods=['POST'])
+def contact():
+    data = request.get_json()
+    try:
+        send_contact_email(
+            name=data.get('name'),
+            email=data.get('email'),
+            subject=data.get('subject'),
+            message=data.get('message')
+        )
+        return jsonify({'message': 'Mensaje enviado correctamente'}), 200
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return jsonify({'error': 'Error al enviar el mensaje'}), 500
+from flask_login import login_user, logout_user, current_user, login_required
+from .services import (
+    register_user, authenticate_user, 
+    create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
     create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
     create_chat_session, ask_chatbot_session, get_creator_sessions, get_session_messages
 )

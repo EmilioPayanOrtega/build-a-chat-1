@@ -10,6 +10,8 @@ from flask_login import LoginManager
 load_dotenv()
 
 socketio = SocketIO()
+from flask_mail import Mail
+mail = Mail()
 
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -29,23 +31,30 @@ def create_app(test_config=None):
         
         app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     
+    # Mail Config
+    app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
+    
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Init extensions
     db.init_app(app)
-    CORS(app, resources={r"/*": {
-        "origins": ["http://localhost:5173", "http://localhost:3000"],
-        "supports_credentials": True
-    }})
+    mail.init_app(app)
+    
+    # Relaxed CORS for debugging
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     socket_kwargs = {
         'manage_session': False,
-        'cors_allowed_origins': ["http://localhost:5173", "http://localhost:3000"]
+        'cors_allowed_origins': "*"
     }
     
     if test_config and test_config.get('TESTING'):
         socket_kwargs['async_mode'] = 'threading'
-        socket_kwargs['cors_allowed_origins'] = '*'
 
     socketio.init_app(app, **socket_kwargs)
 

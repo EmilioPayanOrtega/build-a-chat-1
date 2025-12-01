@@ -319,3 +319,18 @@ def resolve_chat_session(session_id, user_id):
     session.status = 'resolved'
     db.session.commit()
     return session
+
+from flask_mail import Message as MailMessage
+from . import mail
+
+def send_contact_email(name, email, subject, message):
+    if not (name and email and subject and message):
+        raise ValueError('Todos los campos son obligatorios')
+        
+    msg = MailMessage(
+        subject=f"[Contacto WebApp] {subject}",
+        recipients=[mail.default_sender], # Send to self/admin
+        body=f"Has recibido un nuevo mensaje de contacto:\n\nNombre: {name}\nEmail: {email}\n\nMensaje:\n{message}",
+        reply_to=email
+    )
+    mail.send(msg)

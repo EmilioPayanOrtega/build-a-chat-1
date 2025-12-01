@@ -24,7 +24,7 @@
               Crear chatbot
             </RouterLink>
           </template>
-          <a href="#" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
+          <a href="#" @click.prevent="showContactModal = true" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
           
           <span v-if="isAuthenticated" class="flex items-center gap-4">
             <span class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200">
@@ -46,13 +46,16 @@
         </transition>
       </RouterView>
     </main>
+
+    <ContactModal :is-open="showContactModal" @close="showContactModal = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from './store/auth';
+import ContactModal from './components/ContactModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -60,6 +63,7 @@ const { isAuthenticated, state, logout: authLogout, canCreateChatbots } = useAut
 
 const isChatPage = computed(() => route.path === '/chat');
 const username = computed(() => state.username || 'Usuario');
+const showContactModal = ref(false);
 
 async function logout() {
   try {
