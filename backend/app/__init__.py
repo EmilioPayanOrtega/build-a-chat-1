@@ -41,8 +41,6 @@ def create_app():
     # Import events to register handlers
     from . import events
 
-    # Create tables
-    with app.app_context():
-        db.create_all()
+
 
     return app
