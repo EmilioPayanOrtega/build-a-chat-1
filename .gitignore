@@ -11,3 +11,5 @@ node_modules
 myenv
 docker_script.sh
 __pycache__
+venv/
+*.pyc
