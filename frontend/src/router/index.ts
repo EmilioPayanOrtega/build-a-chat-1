@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/create-chatbot',
     name: 'create-chatbot',
-    component: () => import('../views/CreateChatbotView.vue'),
+    component: () => import('../views/ChatbotCreateView.vue'),
     meta: { requiresAuth: true }
   },
   {

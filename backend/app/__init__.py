@@ -43,23 +43,15 @@ def create_app(test_config=None):
         'cors_allowed_origins': ["http://localhost:5173", "http://localhost:3000"]
     }
     
-    # Force threading for tests to avoid eventlet issues
     if test_config and test_config.get('TESTING'):
         socket_kwargs['async_mode'] = 'threading'
         socket_kwargs['cors_allowed_origins'] = '*'
-    else:
-        # For production/dev, we can use default (eventlet/gevent) or force threading if needed.
-        # Given run.py uses gevent, we might want to let it auto-detect or force gevent.
-        # But for now, let's stick to what it was (threading forced in previous code, or auto).
-        # The original code forced threading.
-        socket_kwargs['async_mode'] = 'threading'
 
     socketio.init_app(app, **socket_kwargs)
 
     # Init LoginManager
     login_manager = LoginManager()
     login_manager.init_app(app)
-    
     from .models import User
     @login_manager.user_loader
     def load_user(user_id):

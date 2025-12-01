@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-[calc(100vh-5rem)] flex gap-4 animate-fade-in">
+  <div class="w-full h-[calc(100vh-5rem)] flex animate-fade-in" @mousemove="resize" @mouseup="stopResize" @mouseleave="stopResize">
     <!-- Left Panel: Tree Visualization -->
     <div class="flex-1 bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 overflow-hidden flex flex-col relative">
       <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white/50">
@@ -24,8 +24,19 @@
       </div>
     </div>
 
+    <!-- Resizer Handle -->
+    <div 
+      class="w-4 cursor-col-resize flex items-center justify-center hover:bg-blue-50 transition-colors group select-none"
+      @mousedown="startResize"
+    >
+      <div class="w-1 h-8 bg-gray-200 rounded-full group-hover:bg-blue-400 transition-colors"></div>
+    </div>
+
     <!-- Right Panel: Chat Interface -->
-    <div class="w-96 bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
+    <div 
+      class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden shrink-0"
+      :style="{ width: chatWidth + 'px' }"
+    >
       <!-- Chat Header -->
       <div class="p-4 border-b border-gray-100 bg-white/50 transition-colors duration-300" :class="{'bg-amber-50': isHumanSupport}">
         <div class="flex items-center gap-3">
@@ -111,7 +122,32 @@ const loading = ref(true);
 const error = ref('');
 const isHumanSupport = ref(false);
 const sessionId = ref<number | null>(null);
+
 let socket: Socket | null = null;
+
+// Resizing Logic
+const chatWidth = ref(400);
+const isResizing = ref(false);
+
+function startResize() {
+  isResizing.value = true;
+}
+
+function resize(e: MouseEvent) {
+  if (!isResizing.value) return;
+  
+  // Calculate new width from right edge
+  const newWidth = window.innerWidth - e.clientX - 32; // 32px for padding/margins
+  
+  // Constraints
+  if (newWidth > 300 && newWidth < 800) {
+    chatWidth.value = newWidth;
+  }
+}
+
+function stopResize() {
+  isResizing.value = false;
+}
 
 // Initialize socket connection
 function initSocket(sessId: number) {
