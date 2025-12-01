@@ -13,11 +13,10 @@
         </h1>
         <nav class="flex items-center gap-6 font-medium text-sm text-slate-600">
           <template v-if="!isAuthenticated">
+            <RouterLink to="/register" class="hover:text-blue-600 transition-colors">Registrarse</RouterLink>
             <RouterLink to="/login" class="hover:text-blue-600 transition-colors">Iniciar sesión</RouterLink>
-            <span class="text-slate-300">•</span>
-            <RouterLink to="/register" class="px-4 py-2 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-all hover:shadow-lg hover:-translate-y-0.5">
-              Registrarse
-            </RouterLink>
+            <a href="#" class="hover:text-blue-600 transition-colors">Crear chatbot</a>
+            <a href="#" class="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Contactarnos</a>
           </template>
           <span v-else class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/50 border border-slate-200">
             <div class="w-2 h-2 rounded-full bg-green-500"></div>

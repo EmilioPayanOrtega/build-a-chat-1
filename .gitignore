@@ -13,3 +13,4 @@ docker_script.sh
 __pycache__
 venv/
 *.pyc
+dist/
