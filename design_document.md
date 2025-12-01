@@ -104,6 +104,24 @@ Manages the state of a conversation.
       Child Concept B
     ```
 - **Frontend Processing:** The frontend parses this indented string into a nested **JSON structure** before sending it to the backend.
+    **Example JSON Payload:**
+    ```json
+    {
+      "label": "Root Concept",
+      "children": [
+        {
+          "label": "Child Concept A",
+          "children": [
+            { "label": "Grandchild A1", "children": [] }
+          ]
+        },
+        {
+          "label": "Child Concept B",
+          "children": []
+        }
+      ]
+    }
+    ```
 - **Backend:** Validates the JSON and recursively creates Nodes in the DB.
 - **Data Retrieval:** When a user loads a chatbot: `SELECT * FROM nodes WHERE chatbot_id = X;`
 - **Frontend Visualization:** Receive the flat list of nodes and use a utility function (e.g., `arrayToTree`) to convert them into a hierarchical object for the visualization library.
