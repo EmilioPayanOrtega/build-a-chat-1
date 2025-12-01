@@ -280,6 +280,7 @@ async function sendMessage() {
       const response = await fetch(`/api/chat-sessions/${sessionId.value}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           current_node_id: treeData.value?.id || 1, 
           query: content

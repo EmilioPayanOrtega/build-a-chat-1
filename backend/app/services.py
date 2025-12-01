@@ -98,6 +98,45 @@ def delete_chatbot(chatbot_id, user_id):
     db.session.delete(chatbot)
     db.session.commit()
 
+def update_chatbot(chatbot_id, user_id, title, description, visibility, tree_json=None):
+    chatbot = db.session.get(Chatbot, chatbot_id)
+    if not chatbot:
+        raise ValueError('Chatbot no encontrado')
+    
+    if chatbot.creator_id != user_id:
+        raise ValueError('No autorizado')
+
+    if not (title and visibility):
+        raise ValueError('Faltan campos requeridos')
+
+    # Validate tree if provided
+    if tree_json:
+        if not validate_tree(tree_json):
+             raise ValueError("Formato de árbol inválido")
+
+    try:
+        chatbot.title = title
+        chatbot.description = description
+        chatbot.visibility = visibility
+        
+        if tree_json:
+            # Delete existing nodes
+            # First, unlink all nodes to avoid foreign key constraints (self-referencing)
+            Node.query.filter_by(chatbot_id=chatbot_id).update({Node.parent_node_id: None})
+            db.session.flush()
+            
+            # Now delete them
+            Node.query.filter_by(chatbot_id=chatbot_id).delete()
+            db.session.flush()
+            # Save new nodes
+            _save_tree_nodes(chatbot.id, tree_json)
+
+        db.session.commit()
+        return chatbot
+    except Exception as e:
+        db.session.rollback()
+        raise e
+
 # --- Chat Session Services ---
 from .models import ChatSession, Message
 from datetime import datetime, timezone

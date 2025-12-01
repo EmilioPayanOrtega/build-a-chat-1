@@ -55,6 +55,13 @@
             <RouterLink :to="`/chatbot/${bot.id}`" class="px-4 py-2 rounded-lg bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 transition-colors">
               Explorar
             </RouterLink>
+            <RouterLink 
+              v-if="state.userId && parseInt(state.userId) === bot.creator_id"
+              :to="`/edit-chatbot/${bot.id}`" 
+              class="ml-2 px-4 py-2 rounded-lg bg-yellow-50 text-yellow-600 font-medium hover:bg-yellow-100 transition-colors"
+            >
+              Editar
+            </RouterLink>
           </div>
         </div>
       </div>
@@ -75,7 +82,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '../store/auth';
 
-const { canCreateChatbots } = useAuth();
+const { canCreateChatbots, state } = useAuth();
 
 interface Chatbot {
   id: number;

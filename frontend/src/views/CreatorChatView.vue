@@ -156,7 +156,8 @@ async function resolveSession() {
 
   try {
     const response = await fetch(`/api/chat-sessions/${selectedSession.value.id}/resolve`, {
-      method: 'POST'
+      method: 'POST',
+      credentials: 'include'
     });
     const data = await response.json();
     

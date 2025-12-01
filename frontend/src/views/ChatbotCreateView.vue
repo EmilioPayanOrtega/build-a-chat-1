@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="flex justify-between items-center">
         <div>
-          <h1 class="text-3xl font-bold text-gray-800">Crear Nuevo Chatbot</h1>
+          <h1 class="text-3xl font-bold text-gray-800">{{ isEditMode ? 'Editar Chatbot' : 'Crear Nuevo Chatbot' }}</h1>
           <p class="text-gray-500 mt-1">Define la estructura de conocimiento y la personalidad de tu asistente.</p>
         </div>
         <div class="flex gap-3">
@@ -140,8 +140,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { VueFlow, useVueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -152,6 +152,7 @@ import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 
 const router = useRouter();
+const route = useRoute();
 const { fitView } = useVueFlow();
 
 // Form State
@@ -159,6 +160,7 @@ const title = ref('');
 const description = ref('');
 const visibility = ref('public');
 const saving = ref(false);
+const isEditMode = computed(() => !!route.params.id);
 
 // Tree State
 const treeInput = ref('Raíz\n  Hijo 1\n    Nieto 1.1\n  Hijo 2');
@@ -272,6 +274,49 @@ function updateTreePreview() {
   setTimeout(() => fitView(), 50);
 }
 
+// Reconstruct tree text from JSON
+function reconstructTreeText(nodes: any[], level = 0): string {
+    let text = '';
+    const indent = '  '.repeat(level);
+    
+    for (const node of nodes) {
+        let line = `${indent}${node.label}`;
+        if (node.content) {
+            line += ` | ${node.content}`;
+        }
+        text += line + '\n';
+        
+        if (node.children && node.children.length > 0) {
+            text += reconstructTreeText(node.children, level + 1);
+        }
+    }
+    return text;
+}
+
+async function fetchChatbotDetails(id: string) {
+    try {
+        const response = await fetch(`/api/chatbots/${id}`, { credentials: 'include' });
+        const data = await response.json();
+        
+        if (data.success) {
+            title.value = data.chatbot.title;
+            description.value = data.chatbot.description;
+            visibility.value = data.chatbot.visibility;
+            
+            // Reconstruct tree input
+            if (data.tree) {
+                // Backend returns a single root node (dict), but reconstructTreeText expects an array of nodes.
+                const treeData = Array.isArray(data.tree) ? data.tree : [data.tree];
+                treeInput.value = reconstructTreeText(treeData);
+                updateTreePreview();
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching chatbot:", e);
+        alert("Error al cargar el chatbot");
+    }
+}
+
 async function saveChatbot() {
   if (!title.value.trim()) {
     alert('Por favor ingresa un título');
@@ -367,9 +412,13 @@ async function saveChatbot() {
       tree_json: finalTree
     };
 
-    const response = await fetch('/api/chatbots', {
-      method: 'POST',
+    const url = isEditMode.value ? `/api/chatbots/${route.params.id}` : '/api/chatbots';
+    const method = isEditMode.value ? 'PUT' : 'POST';
+
+    const response = await fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(payload)
     });
 
@@ -388,7 +437,11 @@ async function saveChatbot() {
 }
 
 onMounted(() => {
-  updateTreePreview();
+  if (isEditMode.value) {
+      fetchChatbotDetails(route.params.id as string);
+  } else {
+      updateTreePreview();
+  }
 });
 
 function parseContent(text: string) {

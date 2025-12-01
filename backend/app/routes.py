@@ -31,7 +31,7 @@ from .services import (
     register_user, authenticate_user, 
     create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
     create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
-    create_chat_session, ask_chatbot_session, get_creator_sessions, get_session_messages
+    create_chat_session, ask_chatbot_session, get_creator_sessions, get_session_messages, update_chatbot
 )
 
 main = Blueprint('main', __name__)
@@ -189,7 +189,7 @@ def list_chatbots_route():
     chatbots = list_chatbots(search)
     return jsonify({
         'success': True,
-        'chatbots': [{'id': c.id, 'title': c.title, 'description': c.description} for c in chatbots]
+        'chatbots': [{'id': c.id, 'title': c.title, 'description': c.description, 'creator_id': c.creator_id} for c in chatbots]
     }), 200
 
 @main.route('/chatbots/<int:chatbot_id>', methods=['DELETE'])
@@ -234,4 +234,24 @@ def resolve_chat_session_route(session_id):
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
     except Exception as e:
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
+
+@main.route('/chatbots/<int:chatbot_id>', methods=['PUT'])
+@login_required
+def update_chatbot_route(chatbot_id):
+    data = request.json
+    try:
+        update_chatbot(
+            chatbot_id,
+            current_user.id,
+            data.get('title'),
+            data.get('description'),
+            data.get('visibility'),
+            data.get('tree_json')
+        )
+        return jsonify({'success': True, 'msg': 'Chatbot actualizado'}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        print(f"UPDATE ERROR: {e}")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
