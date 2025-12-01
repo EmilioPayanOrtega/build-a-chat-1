@@ -11,6 +11,12 @@ def test_register_user_success(app):
         
         db_user = db.session.get(User, user.id)
         assert db_user is not None
+        assert db_user.role == 'user'
+
+def test_register_creator_success(app):
+    with app.app_context():
+        user = register_user("creator", "creator@example.com", "password123", role="creator")
+        assert user.role == "creator"
 
 def test_register_user_missing_data(app):
     with app.app_context():
@@ -32,7 +38,7 @@ def test_authenticate_user_success(app):
 def test_authenticate_user_invalid_credentials(app):
     with app.app_context():
         register_user("testuser", "test@example.com", "password123")
-        with pytest.raises(ValueError, match="Invalid username or password"):
+        with pytest.raises(ValueError, match="Invalid username/email or password"):
             authenticate_user("testuser", "wrongpassword")
 
 def test_authenticate_user_missing_data(app):

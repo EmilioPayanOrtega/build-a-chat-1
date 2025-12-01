@@ -9,6 +9,16 @@ def test_signup_route_success(client):
     assert response.status_code == 201
     assert response.json['success'] is True
 
+def test_signup_route_creator_success(client):
+    response = client.post('/auth/register', json={
+        "username": "creator",
+        "email": "creator@example.com",
+        "password": "password123",
+        "role": "creator"
+    })
+    assert response.status_code == 201
+    assert response.json['success'] is True
+
 def test_signup_route_missing_data(client):
     response = client.post('/auth/register', json={
         "username": "apiuser"

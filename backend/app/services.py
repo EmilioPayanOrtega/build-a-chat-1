@@ -1,7 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from .models import db, User
 
-def register_user(username, email, password):
+def register_user(username, email, password, role='user'):
     if not (username and email and password):
         raise ValueError('Missing data')
     
@@ -10,7 +10,7 @@ def register_user(username, email, password):
 
     try:
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-        new_user = User(username=username, email=email, password_hash=password_hash)
+        new_user = User(username=username, email=email, password_hash=password_hash, role=role)
         db.session.add(new_user)
         db.session.commit()
         return new_user

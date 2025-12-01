@@ -7,7 +7,7 @@ def test_join_room_authorized(app):
     print(f"DEBUG: Test socketio id: {id(socketio)}")
     with app.app_context():
         # Setup
-        creator = register_user("creator_sock", "sock@example.com", "pass")
+        creator = register_user("creator_sock", "sock@example.com", "pass", role='creator')
         user = register_user("user_sock", "user_sock@example.com", "pass")
         chatbot = create_chatbot(creator.id, "Sock Bot", "Desc", "public", {"label": "Root", "children": []})
         session = create_chat_session(chatbot.id, user.id)
@@ -32,7 +32,7 @@ def test_join_room_authorized(app):
 def test_join_room_unauthorized(app):
     with app.app_context():
         # Setup
-        creator = register_user("creator_sock2", "sock2@example.com", "pass")
+        creator = register_user("creator_sock2", "sock2@example.com", "pass", role='creator')
         user = register_user("user_sock2", "user_sock2@example.com", "pass")
         intruder = register_user("intruder", "intruder@example.com", "pass")
         chatbot = create_chatbot(creator.id, "Sock Bot 2", "Desc", "public", {"label": "Root", "children": []})
@@ -57,7 +57,7 @@ def test_join_room_unauthorized(app):
 def test_send_message_persistence(app):
     with app.app_context():
         # Setup
-        creator = register_user("creator_sock3", "sock3@example.com", "pass")
+        creator = register_user("creator_sock3", "sock3@example.com", "pass", role='creator')
         user = register_user("user_sock3", "user_sock3@example.com", "pass")
         chatbot = create_chatbot(creator.id, "Sock Bot 3", "Desc", "public", {"label": "Root", "children": []})
         session = create_chat_session(chatbot.id, user.id)

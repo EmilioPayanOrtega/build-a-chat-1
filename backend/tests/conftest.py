@@ -4,10 +4,13 @@ from app.models import db
 
 @pytest.fixture
 def app():
+    from sqlalchemy.pool import StaticPool
     app = create_app()
     app.config.update({
         "TESTING": True,
-        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"
+        "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        "SQLALCHEMY_POOLCLASS": StaticPool,
+        "SQLALCHEMY_ENGINE_OPTIONS": {"connect_args": {"check_same_thread": False}}
     })
 
     with app.app_context():
