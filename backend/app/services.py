@@ -3,10 +3,10 @@ from .models import db, User
 
 def register_user(username, email, password, role='user'):
     if not (username and email and password):
-        raise ValueError('Missing data')
+        raise ValueError('Datos faltantes')
     
     if User.query.filter((User.username == username) | (User.email == email)).first():
-        raise ValueError('Username or email already exists')
+        raise ValueError('El usuario o correo ya existe')
 
     try:
         password_hash = generate_password_hash(password, method='pbkdf2:sha256')
@@ -20,13 +20,13 @@ def register_user(username, email, password, role='user'):
 
 def authenticate_user(identifier, password):
     if not (identifier and password):
-        raise ValueError('Incomplete data')
+        raise ValueError('Datos incompletos')
     
     # Check if identifier is email or username
     user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
     
     if not user or not check_password_hash(user.password_hash, password):
-        raise ValueError('Invalid username/email or password')
+        raise ValueError('Usuario/correo o contraseña inválidos')
 
     return user
 
@@ -36,12 +36,12 @@ from .utils.ai_client import generate_response
 
 def create_chatbot(user_id, title, description, visibility, tree_json):
     if not (title and visibility):
-        raise ValueError('Missing required fields')
+        raise ValueError('Faltan campos requeridos')
     
     # Validate tree
     if tree_json:
         if not validate_tree(tree_json):
-             raise ValueError("Invalid tree format")
+             raise ValueError("Formato de árbol inválido")
 
     try:
         new_chatbot = Chatbot(
@@ -91,9 +91,9 @@ def list_chatbots(search_query=None):
 def delete_chatbot(chatbot_id, user_id):
     chatbot = db.session.get(Chatbot, chatbot_id)
     if not chatbot:
-        raise ValueError('Chatbot not found')
+        raise ValueError('Chatbot no encontrado')
     if chatbot.creator_id != user_id:
-        raise ValueError('Unauthorized')
+        raise ValueError('No autorizado')
     
     db.session.delete(chatbot)
     db.session.commit()
@@ -102,7 +102,17 @@ def delete_chatbot(chatbot_id, user_id):
 from .models import ChatSession, Message
 from datetime import datetime, timezone
 
-def create_chat_session(chatbot_id, user_id, session_type='human_support'):
+def create_chat_session(chatbot_id, user_id, session_type='ai_conversation'):
+    # Check for existing active session
+    existing_session = ChatSession.query.filter_by(
+        chatbot_id=chatbot_id, 
+        user_id=user_id, 
+        status='active'
+    ).first()
+    
+    if existing_session:
+        return existing_session
+
     session = ChatSession(
         chatbot_id=chatbot_id,
         user_id=user_id,
@@ -141,7 +151,7 @@ def validate_session_access(session_id, user_id):
 def save_message(session_id, sender_id, content):
     session = get_chat_session(session_id)
     if not session:
-        raise ValueError("Session not found")
+        raise ValueError("Sesión no encontrada")
         
     sender_type = 'user' if sender_id == session.user_id else 'creator'
 
@@ -159,7 +169,7 @@ def save_message(session_id, sender_id, content):
 def switch_session_to_human(session_id):
     session = get_chat_session(session_id)
     if not session:
-        raise ValueError("Session not found")
+        raise ValueError("Sesión no encontrada")
     session.type = 'human_support'
     db.session.commit()
     return session
@@ -179,7 +189,7 @@ def ask_chatbot_session(session_id, current_node_id, query):
     # 1. Fetch Session
     session = get_chat_session(session_id)
     if not session:
-        raise ValueError("Session not found")
+        raise ValueError("Sesión no encontrada")
     
     # User message is already saved via socket event before calling this API
     # save_message(session_id, session.user_id, query)
@@ -190,7 +200,7 @@ def ask_chatbot_session(session_id, current_node_id, query):
     current_node = db.session.get(Node, current_node_id)
     
     if not current_node or current_node.chatbot_id != session.chatbot_id:
-        raise ValueError("Node not found or does not belong to this chatbot")
+        raise ValueError("Nodo no encontrado o no pertenece a este chatbot")
         
     # 4. Fetch History (Last 10 messages)
     messages = Message.query.filter_by(chat_session_id=session_id).order_by(Message.created_at.desc()).limit(10).all()
@@ -199,9 +209,10 @@ def ask_chatbot_session(session_id, current_node_id, query):
     # 5. Construct Prompt
     # System Instruction
     system_prompt = (
-        f"You are a helpful support assistant for the chatbot '{chatbot.title}'. "
-        "Your goal is to answer user questions based STRICTLY on the provided Knowledge Base. "
-        "If the answer is not in the Knowledge Base, politely say you don't know."
+        f"Eres un asistente de soporte útil para el chatbot '{chatbot.title}'. "
+        "Tu objetivo es responder a las preguntas de los usuarios basándote ESTRICTAMENTE en la Base de Conocimiento proporcionada. "
+        "Si la respuesta no está en la Base de Conocimiento, di cortésmente que no lo sabes. "
+        "RESPONDE SIEMPRE EN ESPAÑOL."
     )
     
     # Knowledge Base (Full Tree)
@@ -209,31 +220,31 @@ def ask_chatbot_session(session_id, current_node_id, query):
     kb_str = json.dumps(tree_json, indent=2)
     
     # Current Context
-    node_context = f"User is currently viewing node: '{current_node.label}'"
+    node_context = f"El usuario está viendo el nodo: '{current_node.label}'"
     if current_node.content:
-        node_context += f" - Content: {current_node.content}"
+        node_context += f" - Contenido: {current_node.content}"
         
     # History
     history_str = ""
     for msg in messages:
-        role = "User" if msg.sender_type == 'user' else "AI"
+        role = "Usuario" if msg.sender_type == 'user' else "IA"
         history_str += f"{role}: {msg.content}\n"
         
     # Final Prompt Construction
     full_prompt = (
         f"{system_prompt}\n\n"
-        f"--- Knowledge Base ---\n{kb_str}\n\n"
-        f"--- Current Context ---\n{node_context}\n\n"
-        f"--- Conversation History ---\n{history_str}\n"
-        f"--- User Question ---\n{query}"
+        f"--- Base de Conocimiento ---\n{kb_str}\n\n"
+        f"--- Contexto Actual ---\n{node_context}\n\n"
+        f"--- Historial de Conversación ---\n{history_str}\n"
+        f"--- Pregunta del Usuario ---\n{query}"
     )
     
     # 6. Call AI
     complex_context = (
         f"{system_prompt}\n\n"
-        f"--- Knowledge Base ---\n{kb_str}\n\n"
-        f"--- Current Context ---\n{node_context}\n\n"
-        f"--- Conversation History ---\n{history_str}"
+        f"--- Base de Conocimiento ---\n{kb_str}\n\n"
+        f"--- Contexto Actual ---\n{node_context}\n\n"
+        f"--- Historial de Conversación ---\n{history_str}"
     )
     
     ai_response_text = generate_response(complex_context, query)
@@ -259,12 +270,15 @@ def get_creator_sessions(creator_id):
     """
     Returns all chat sessions for chatbots owned by the creator, excluding resolved ones.
     """
-    # Join ChatSession with Chatbot to filter by creator_id
     sessions = db.session.query(ChatSession).join(Chatbot).filter(
         Chatbot.creator_id == creator_id,
-        ChatSession.status != 'resolved'
+        ChatSession.status != 'resolved',
+        ChatSession.type == 'human_support'
     ).all()
     return sessions
+
+def get_session_messages(session_id):
+    return Message.query.filter_by(chat_session_id=session_id).order_by(Message.created_at.asc()).all()
 
 def switch_session_to_human(session_id):
     """
@@ -272,9 +286,21 @@ def switch_session_to_human(session_id):
     """
     session = get_chat_session(session_id)
     if not session:
-        raise ValueError("Session not found")
+        raise ValueError("Sesión no encontrada")
     
     session.type = 'human_support'
+    db.session.commit()
+    return session
+
+def switch_session_to_ai(session_id):
+    """
+    Updates session type to ai.
+    """
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Sesión no encontrada")
+    
+    session.type = 'ai_conversation'
     db.session.commit()
     return session
 
@@ -284,11 +310,11 @@ def resolve_chat_session(session_id, user_id):
     """
     session = get_chat_session(session_id)
     if not session:
-        raise ValueError("Session not found")
+        raise ValueError("Sesión no encontrada")
     
     # Check permission (must be participant)
     if not validate_session_access(session_id, user_id):
-        raise ValueError("Unauthorized")
+        raise ValueError("No autorizado")
 
     session.status = 'resolved'
     db.session.commit()

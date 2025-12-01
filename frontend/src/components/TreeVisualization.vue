@@ -21,16 +21,18 @@
           <div class="font-bold text-sm text-gray-700">{{ props.data.label }}</div>
           <div v-if="props.data.content" class="text-xs text-gray-500 mt-1">
             <div :class="{ 'truncate max-w-[200px]': !props.data.expanded, 'whitespace-pre-wrap text-left': props.data.expanded }">
-              <a 
-                v-if="props.data.content.startsWith('http')" 
-                :href="props.data.content" 
-                target="_blank" 
-                class="text-blue-600 hover:underline"
-                @click.stop
-              >
-                {{ props.data.content }}
-              </a>
-              <span v-else>{{ props.data.content }}</span>
+              <template v-for="(segment, i) in parseContent(props.data.content)" :key="i">
+                <a 
+                  v-if="segment.isLink" 
+                  :href="segment.text" 
+                  target="_blank" 
+                  class="text-blue-600 hover:underline break-all"
+                  @click.stop
+                >
+                  {{ segment.text }}
+                </a>
+                <span v-else>{{ segment.text }}</span>
+              </template>
             </div>
             <div v-if="!props.data.expanded" class="flex justify-center mt-1">
               <svg class="w-4 h-4 text-gray-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -158,6 +160,16 @@ watch(() => props.data, () => {
 onMounted(() => {
   updateLayout();
 });
+
+function parseContent(text: string) {
+  if (!text) return [];
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map(part => ({
+    text: part,
+    isLink: urlRegex.test(part)
+  })).filter(part => part.text);
+}
 </script>
 
 <style>

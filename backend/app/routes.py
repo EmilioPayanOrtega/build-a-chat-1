@@ -4,7 +4,8 @@ from flask_login import login_user, logout_user, current_user, login_required
 from .services import (
     register_user, authenticate_user, 
     create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
-    create_chat_session, ask_chatbot_session, get_creator_sessions
+    create_chatbot, get_chatbot, get_chatbot_tree, list_chatbots, delete_chatbot, 
+    create_chat_session, ask_chatbot_session, get_creator_sessions, get_session_messages
 )
 
 main = Blueprint('main', __name__)
@@ -14,11 +15,11 @@ def register():
     data = request.json
     try:
         user = register_user(data.get('username'), data.get('email'), data.get('password'), data.get('role', 'user'))
-        return jsonify({'success': True, 'msg': 'User registered successfully'}), 201
+        return jsonify({'success': True, 'msg': 'Usuario registrado exitosamente'}), 201
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 @main.route('/auth/login', methods=['POST'])
 def login():
@@ -28,17 +29,17 @@ def login():
         identifier = data.get('username') or data.get('email')
         user = authenticate_user(identifier, data.get('password'))
         login_user(user)
-        return jsonify({'success': True, 'msg': 'Login successful', 'user_id': user.id, 'role': user.role}), 200
+        return jsonify({'success': True, 'msg': 'Inicio de sesión exitoso', 'user_id': user.id, 'role': user.role}), 200
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 401
     except Exception as e:
         print(f"LOGIN ERROR: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 @main.route('/auth/logout', methods=['GET', 'POST'])
 def logout():
     logout_user()
-    return jsonify({'success': True, 'msg': 'Logged out'}), 200
+    return jsonify({'success': True, 'msg': 'Sesión cerrada'}), 200
 
 @main.route('/chat-sessions', methods=['POST'])
 def create_chat_session_route():
@@ -46,18 +47,38 @@ def create_chat_session_route():
     chatbot_id = data.get('chatbot_id')
     
     if not chatbot_id:
-        return jsonify({'success': False, 'error': 'Missing chatbot_id'}), 400
+        return jsonify({'success': False, 'error': 'Falta chatbot_id'}), 400
         
     if not current_user.is_authenticated:
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        return jsonify({'success': False, 'error': 'No autorizado'}), 401
         
     try:
         session = create_chat_session(chatbot_id, current_user.id)
-        return jsonify({'success': True, 'session_id': session.id}), 201
+        return jsonify({'success': True, 'session_id': session.id, 'type': session.type}), 201
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-from .services import ask_chatbot_session
+@main.route('/chat-sessions/<int:session_id>/messages', methods=['GET'])
+@login_required
+def get_session_messages_route(session_id):
+    try:
+        # Validate access
+        if not validate_session_access(session_id, current_user.id):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 403
+            
+        messages = get_session_messages(session_id)
+        return jsonify({
+            'success': True, 
+            'messages': [{
+                'content': m.content,
+                'sender_type': m.sender_type,
+                'created_at': m.created_at.isoformat()
+            } for m in messages]
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
+
+from .services import ask_chatbot_session, validate_session_access
 
 @main.route('/chat-sessions/<int:session_id>/ask', methods=['POST'])
 def ask_session_ai_route(session_id):
@@ -66,7 +87,7 @@ def ask_session_ai_route(session_id):
     query = data.get('query')
     
     if not current_node_id or not query:
-        return jsonify({'success': False, 'error': 'Missing current_node_id or query'}), 400
+        return jsonify({'success': False, 'error': 'Falta current_node_id o query'}), 400
         
     try:
         # Validate access? 
@@ -79,7 +100,7 @@ def ask_session_ai_route(session_id):
         # So we assume user is authenticated.
         
         if not current_user.is_authenticated:
-             return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+             return jsonify({'success': False, 'error': 'No autorizado'}), 401
              
         # TODO: Check if current_user is the owner of the session
         
@@ -89,17 +110,17 @@ def ask_session_ai_route(session_id):
         return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
         print(f"AI SESSION ERROR: {e}")
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 @main.route('/chatbots', methods=['POST'])
 def create_chatbot_route():
     data = request.json
     try:
         if not current_user.is_authenticated:
-            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
         
         if current_user.role != 'creator':
-            return jsonify({'success': False, 'error': 'Only creators can create chatbots'}), 403
+            return jsonify({'success': False, 'error': 'Solo los creadores pueden crear chatbots'}), 403
         
         user_id = current_user.id
 
@@ -110,17 +131,17 @@ def create_chatbot_route():
             data.get('visibility'), 
             data.get('tree_json')
         )
-        return jsonify({'success': True, 'msg': 'Chatbot created', 'id': chatbot.id}), 201
+        return jsonify({'success': True, 'msg': 'Chatbot creado', 'id': chatbot.id}), 201
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 @main.route('/chatbots/<int:chatbot_id>', methods=['GET'])
 def get_chatbot_route(chatbot_id):
     chatbot = get_chatbot(chatbot_id)
     if not chatbot:
-        return jsonify({'success': False, 'error': 'Chatbot not found'}), 404
+        return jsonify({'success': False, 'error': 'Chatbot no encontrado'}), 404
     
     tree = get_chatbot_tree(chatbot_id)
     
@@ -152,17 +173,17 @@ def delete_chatbot_route(chatbot_id):
 
     try:
         delete_chatbot(chatbot_id, user_id)
-        return jsonify({'success': True, 'msg': 'Chatbot deleted'}), 200
+        return jsonify({'success': True, 'msg': 'Chatbot eliminado'}), 200
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
     except Exception as e:
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
         
 @main.route('/creator/sessions', methods=['GET'])
 @login_required
 def list_creator_sessions_route():
     if current_user.role != 'creator':
-        return jsonify({'success': False, 'error': 'Unauthorized'}), 403
+        return jsonify({'success': False, 'error': 'No autorizado'}), 403
         
     sessions = get_creator_sessions(current_user.id)
     
@@ -183,8 +204,8 @@ from .services import resolve_chat_session
 def resolve_chat_session_route(session_id):
     try:
         resolve_chat_session(session_id, current_user.id)
-        return jsonify({'success': True, 'msg': 'Chat session resolved'}), 200
+        return jsonify({'success': True, 'msg': 'Sesión de chat resuelta'}), 200
     except ValueError as e:
         return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
     except Exception as e:
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

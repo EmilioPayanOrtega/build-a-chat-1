@@ -34,15 +34,22 @@
         
         <template v-else>
           <!-- Header -->
-          <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <div>
-              <h3 class="font-bold text-gray-800">{{ selectedSession.chatbot_title }}</h3>
-              <p class="text-xs text-green-600 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                Conectado con Usuario #{{ selectedSession.user_id }}
-              </p>
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <div>
+                <h3 class="font-bold text-gray-800">{{ selectedSession.chatbot_title }}</h3>
+                <p class="text-xs text-green-600 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                  Conectado con Usuario #{{ selectedSession.user_id }}
+                </p>
+              </div>
+              <button 
+                @click="resolveSession"
+                class="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm flex items-center gap-1"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Resolver
+              </button>
             </div>
-          </div>
 
           <!-- Messages -->
           <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50" ref="messagesContainer">
@@ -123,6 +130,49 @@ function selectSession(session: Session) {
   
   // Connect to new room
   initSocket(session.id);
+  fetchHistory(session.id);
+}
+
+async function fetchHistory(sessId: number) {
+  try {
+    const response = await fetch(`/api/chat-sessions/${sessId}/messages`);
+    const data = await response.json();
+    if (data.success) {
+      messages.value = data.messages.map((m: any) => ({
+        text: m.content,
+        isMe: m.sender_type === 'creator'
+      }));
+      scrollToBottom();
+    }
+  } catch (e) {
+    console.error('Failed to fetch history', e);
+  }
+}
+
+async function resolveSession() {
+  if (!selectedSession.value) return;
+  
+  if (!confirm('¿Estás seguro de que deseas marcar este chat como resuelto? Desaparecerá de tu lista.')) return;
+
+  try {
+    const response = await fetch(`/api/chat-sessions/${selectedSession.value.id}/resolve`, {
+      method: 'POST'
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      // Remove from list
+      sessions.value = sessions.value.filter(s => s.id !== selectedSession.value?.id);
+      selectedSession.value = null;
+      messages.value = [];
+      if (socket) socket.disconnect();
+    } else {
+      alert(data.error || 'Error al resolver la sesión');
+    }
+  } catch (e) {
+    console.error('Failed to resolve session', e);
+    alert('Error de conexión');
+  }
 }
 
 function initSocket(sessionId: number) {

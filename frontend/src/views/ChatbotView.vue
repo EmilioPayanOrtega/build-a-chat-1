@@ -80,15 +80,12 @@
         </form>
         <div class="mt-2 text-center">
           <button 
-            v-if="!isHumanSupport"
             @click="requestHumanSupport"
-            class="text-xs text-gray-400 hover:text-blue-500 transition-colors underline"
+            class="text-xs transition-colors underline"
+            :class="isHumanSupport ? 'text-red-500 hover:text-red-700' : 'text-gray-400 hover:text-blue-500'"
           >
-            ¿Necesitas ayuda humana?
+            {{ isHumanSupport ? 'Cancelar ayuda humana' : '¿Necesitas ayuda humana?' }}
           </button>
-          <span v-else class="text-xs text-blue-500 font-medium">
-            Chat con soporte humano activo
-          </span>
         </div>
       </div>
     </div>
@@ -182,6 +179,8 @@ function initSocket(sessId: number) {
     console.log('Session updated event received:', data);
     if (data.type === 'human_support') {
       isHumanSupport.value = true;
+    } else if (data.type === 'ai_conversation') {
+      isHumanSupport.value = false;
     }
   });
 
@@ -200,10 +199,33 @@ async function createSession() {
     const data = await response.json();
     if (data.success) {
       sessionId.value = data.session_id;
+      if (data.type === 'human_support') {
+        isHumanSupport.value = true;
+      }
       initSocket(data.session_id);
+      await fetchHistory(data.session_id);
     }
   } catch (e) {
     console.error('Failed to create session', e);
+  }
+}
+
+async function fetchHistory(sessId: number) {
+  try {
+    const response = await fetch(`/api/chat-sessions/${sessId}/messages`);
+    const data = await response.json();
+    if (data.success) {
+      messages.value = [
+        { text: '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte sobre este tema?', isUser: false },
+        ...data.messages.map((m: any) => ({
+          text: m.content,
+          isUser: m.sender_type === 'user'
+        }))
+      ];
+      scrollToBottom();
+    }
+  } catch (e) {
+    console.error('Failed to fetch history', e);
   }
 }
 
@@ -217,10 +239,10 @@ async function fetchChatbotData() {
       treeData.value = data.tree;
       chatbotTitle.value = data.chatbot.title;
     } else {
-      error.value = data.error || 'Failed to load chatbot data';
+      error.value = data.error || 'Error al cargar los datos del chatbot';
     }
   } catch (e) {
-    error.value = 'Error connecting to server';
+    error.value = 'Error al conectar con el servidor';
     console.error(e);
   } finally {
     loading.value = false;
@@ -276,15 +298,21 @@ async function sendMessage() {
 }
 
 function requestHumanSupport() {
-  console.log('Requesting human support...', { sessionId: sessionId.value, userId: authState.userId, socketConnected: socket?.connected });
-  if (!sessionId.value) {
-    console.error('No session ID');
-    return;
+  if (!sessionId.value) return;
+
+  if (isHumanSupport.value) {
+    // Cancel request
+    socket?.emit('cancel_human', {
+      session_id: sessionId.value,
+      user_id: authState.userId
+    });
+  } else {
+    // Request support
+    socket?.emit('request_human', {
+      session_id: sessionId.value,
+      user_id: authState.userId
+    });
   }
-  socket?.emit('request_human', {
-    session_id: sessionId.value,
-    user_id: authState.userId
-  });
 }
 
 function scrollToBottom() {

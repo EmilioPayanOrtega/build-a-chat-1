@@ -96,6 +96,38 @@ def on_request_human(data):
         print(f"ERROR in on_request_human: {e}")
         emit('error', {'msg': str(e)})
 
+@socketio.on('cancel_human')
+def on_cancel_human(data):
+    """
+    Client cancels human support.
+    Data: { 'session_id': int, 'user_id': int }
+    """
+    session_id = data.get('session_id')
+    user_id = data.get('user_id')
+    
+    if user_id:
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            pass
+    
+    if not session_id or not user_id:
+        return
+
+    try:
+        if validate_session_access(session_id, user_id):
+            from .services import switch_session_to_ai
+            switch_session_to_ai(session_id)
+            
+            room = f"session_{session_id}"
+            emit('status', {'msg': 'Solicitud de ayuda humana cancelada. Volviendo a modo IA.'}, room=room)
+            emit('session_updated', {'type': 'ai_conversation'}, room=room)
+        else:
+            emit('error', {'msg': 'No autorizado'})
+    except Exception as e:
+        print(f"ERROR in on_cancel_human: {e}")
+        emit('error', {'msg': str(e)})
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print(f"Client disconnected: {request.sid}")
