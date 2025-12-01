@@ -21,5 +21,10 @@ def client(app):
     return app.test_client()
 
 @pytest.fixture
+def socket_client(app):
+    from app import socketio
+    return socketio.test_client(app, flask_test_client=app.test_client())
+
+@pytest.fixture
 def runner(app):
     return app.test_cli_runner()

@@ -18,14 +18,15 @@ def register_user(username, email, password):
         db.session.rollback()
         raise e
 
-def authenticate_user(username, password):
-    if not (username and password):
+def authenticate_user(identifier, password):
+    if not (identifier and password):
         raise ValueError('Incomplete data')
     
-    user = User.query.filter_by(username=username).first()
+    # Check if identifier is email or username
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
     
     if not user or not check_password_hash(user.password_hash, password):
-        raise ValueError('Invalid username or password')
+        raise ValueError('Invalid username/email or password')
 
     return user
 
@@ -130,3 +131,61 @@ def delete_chatbot(chatbot_id, user_id):
     
     db.session.delete(chatbot)
     db.session.commit()
+
+# --- Chat Session Services ---
+from .models import ChatSession, Message
+from datetime import datetime, timezone
+
+def create_chat_session(chatbot_id, user_id, session_type='human_support'):
+    session = ChatSession(
+        chatbot_id=chatbot_id,
+        user_id=user_id,
+        type=session_type,
+        status='active'
+    )
+    db.session.add(session)
+    db.session.commit()
+    return session
+
+def get_chat_session(session_id):
+    return db.session.get(ChatSession, session_id)
+
+def validate_session_access(session_id, user_id):
+    """
+    Checks if the user is a participant (User or Creator) of the session.
+    """
+    session = get_chat_session(session_id)
+    if not session:
+        return False
+    
+    # Check if user is the session starter
+    if session.user_id == user_id:
+        return True
+        
+    # Check if user is the creator of the chatbot
+    chatbot = get_chatbot(session.chatbot_id)
+    if chatbot and chatbot.creator_id == user_id:
+        return True
+        
+    return False
+
+def save_message(session_id, sender_id, content):
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Session not found")
+        
+    sender_type = 'user'
+    if sender_id != session.user_id:
+        # If not the session owner, assume creator (since we validated access)
+        sender_type = 'creator'
+
+    message = Message(
+        chat_session_id=session_id,
+        sender_id=sender_id,
+        sender_type=sender_type,
+        content=content,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.session.add(message)
+    db.session.commit()
+    return message

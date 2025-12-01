@@ -56,11 +56,14 @@ python run_tests.py
 ```
 This runs all tests using `pytest` and an in-memory SQLite database, ensuring no changes are made to your local MySQL database.
 
+For a detailed explanation of our testing strategy and the End-to-End Verification script, see [TESTING.md](TESTING.md).
+
 ## API Endpoints
 
 ### Authentication
 - `POST /auth/login`
 - `POST /auth/register`
+- `POST /auth/logout`
 
 ### Chatbots
 - `GET /chatbots?search=xyz` (Public search)
@@ -68,6 +71,7 @@ This runs all tests using `pytest` and an in-memory SQLite database, ensuring no
 - `POST /chatbots` (Create new bot - accepts nested JSON tree)
 - `PUT /chatbots/<id>` (Update tree)
 - `POST /chatbots/<id>/ask-ai` (Gemini interaction)
+- `POST /chat-sessions` (Create a new support chat session)
 
 ### Socket.IO Events
 - `connect`: Authenticate user.

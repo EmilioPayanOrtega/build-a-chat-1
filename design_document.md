@@ -163,6 +163,7 @@ Manages the state of a conversation.
 - `POST /chatbots` (Create new bot - accepts JSON tree)
 - `PUT /chatbots/<id>` (Update tree)
 - `POST /chatbots/<id>/ask-ai` (Endpoint for Gemini interaction - usually REST is easier than Socket for simple request/response AI).
+- `POST /chat-sessions` (Create a new support chat session)
 
 ### 5.2 Socket.IO Events
 - `connect`: Authenticate user via token.
