@@ -20,7 +20,7 @@ The project aims to facilitate the creation of mapped-information integrated wit
 **Creator Workflow:** Creators upload tree structures via JSON and manage visibility permissions. Users search for chatbots via title substrings.
 
 ### 1.2 Scope
-- **Frontend:** Vue.js (SPA).
+- **Frontend:** Vue.js (SPA) + Tailwind CSS.
 - **Backend:** Python Flask + Flask-SocketIO.
 - **Database:** MySQL / MariaDB.
 - **AI:** Google Gemini API.
