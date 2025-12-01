@@ -1,4 +1,8 @@
 import os
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 def generate_response(context: str, query: str) -> str:
     """
@@ -24,13 +28,14 @@ def generate_response(context: str, query: str) -> str:
     api_key = os.getenv('GEMINI_API_KEY')
     
     if api_key:
-        # TODO: Implement actual Gemini API call here
-        # import google.generativeai as genai
-        # genai.configure(api_key=api_key)
-        # model = genai.GenerativeModel('gemini-pro')
-        # response = model.generate_content(full_prompt)
-        # return response.text
-        pass
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-flash-latest')
+            response = model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            print(f"Error calling Gemini API: {e}")
+            return f"Error generating response: {str(e)}"
         
-    # Mock Response for development/testing
-    return f"[MOCK AI RESPONSE] based on context: {context[:200]}..."
+    # Mock Response for development/testing (fallback)
+    return f"[MOCK AI RESPONSE] (API Key missing) based on context: {context[:200]}..."

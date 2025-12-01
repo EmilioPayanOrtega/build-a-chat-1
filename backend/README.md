@@ -70,8 +70,8 @@ For more options (e.g. running only unit tests or only E2E), see [TESTING.md](TE
 - `GET /chatbots/<id>` (Fetch tree data - returns nested JSON)
 - `POST /chatbots` (Create new bot - accepts nested JSON tree)
 - `PUT /chatbots/<id>` (Update tree)
-- `POST /chatbots/<id>/ask-ai` (Gemini interaction)
 - `POST /chat-sessions` (Create a new support chat session)
+- `POST /chat-sessions/<session_id>/ask` (Stateful AI interaction)
 
 ### Socket.IO Events
 - `connect`: Authenticate user.

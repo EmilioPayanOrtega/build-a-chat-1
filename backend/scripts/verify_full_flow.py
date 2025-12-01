@@ -24,7 +24,7 @@ def run_verification():
         try:
             # 1. Register Creator
             print("\n[1] Registering Creator...")
-            res = client.post('/auth/register', json={
+            res = client.post('/api/auth/register', json={
                 'username': 'creator_bob',
                 'email': 'bob@example.com',
                 'password': 'password123',
@@ -36,7 +36,7 @@ def run_verification():
             print("    -> Creator registered.")
             
             # Login Creator
-            res = client.post('/auth/login', json={
+            res = client.post('/api/auth/login', json={
                 'email': 'bob@example.com',
                 'password': 'password123'
             })
@@ -64,7 +64,7 @@ def run_verification():
                     }
                 ]
             }
-            res = client.post('/chatbots', json={
+            res = client.post('/api/chatbots', json={
                 'title': 'Bob Tech Support',
                 'description': 'Help with tech',
                 'visibility': 'public',
@@ -75,11 +75,11 @@ def run_verification():
             print(f"    -> Chatbot created. ID: {chatbot_id}")
             
             # Logout Creator
-            client.get('/auth/logout') 
+            client.get('/api/auth/logout') 
             
             # 3. Register User
             print("\n[3] Registering User...")
-            res = client.post('/auth/register', json={
+            res = client.post('/api/auth/register', json={
                 'username': 'user_alice',
                 'email': 'alice@example.com',
                 'password': 'password123',
@@ -87,7 +87,7 @@ def run_verification():
             })
             assert res.status_code == 201
             
-            res = client.post('/auth/login', json={
+            res = client.post('/api/auth/login', json={
                 'email': 'alice@example.com',
                 'password': 'password123'
             })
@@ -97,19 +97,25 @@ def run_verification():
             
             # 4. Search Chatbot
             print("\n[4] Searching Chatbot...")
-            res = client.get('/chatbots?search=Bob')
+            res = client.get('/api/chatbots?search=Bob')
             assert res.status_code == 200
             assert len(res.json['chatbots']) > 0
             assert res.json['chatbots'][0]['id'] == chatbot_id
             print("    -> Chatbot found.")
             
-            # 5. Ask AI
-            print("\n[5] Asking AI...")
-            # Need to find a node ID first
-            res = client.get(f'/chatbots/{chatbot_id}')
+            # 5. Ask AI (Stateful)
+            print("\n[5] Asking AI (Stateful)...")
+            # Create session first
+            res = client.post('/api/chat-sessions', json={'chatbot_id': chatbot_id})
+            assert res.status_code == 201
+            session_id = res.json['session_id']
+            print(f"    -> Session created. ID: {session_id}")
+            
+            # Need to find a node ID
+            res = client.get(f'/api/chatbots/{chatbot_id}')
             root_node_id = res.json['tree']['id']
             
-            res = client.post(f'/chatbots/{chatbot_id}/ask-ai', json={
+            res = client.post(f'/api/chat-sessions/{session_id}/ask', json={
                 'current_node_id': root_node_id,
                 'query': 'What do you support?'
             })
@@ -119,7 +125,7 @@ def run_verification():
             # 6. Starting Real-time Chat
             print("\n[6] Starting Real-time Chat...")
             # Create session (User is currently logged in)
-            res = client.post('/chat-sessions', json={'chatbot_id': chatbot_id})
+            res = client.post('/api/chat-sessions', json={'chatbot_id': chatbot_id})
             assert res.status_code == 201
             session_id = res.json['session_id']
             print(f"    -> Session created via API. ID: {session_id}")
@@ -134,7 +140,7 @@ def run_verification():
             # Create a new client for Creator (ID 1)
             creator_http = app.test_client()
             # Login Creator
-            res = creator_http.post('/auth/login', json={
+            res = creator_http.post('/api/auth/login', json={
                 'email': 'bob@example.com', # Login creator_bob, not alice
                 'password': 'password123'
             })

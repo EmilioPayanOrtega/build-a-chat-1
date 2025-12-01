@@ -153,34 +153,98 @@ def save_message(session_id, sender_id, content):
     db.session.commit()
     return message
 
-def ask_chatbot(chatbot_id, current_node_id, query):
+def ask_chatbot_session(session_id, current_node_id, query):
     """
-    Queries the AI with context from the current node and its immediate children.
+    Stateful AI chat.
+    1. Fetches session and validates.
+    2. Fetches full tree and current node for context.
+    3. Fetches conversation history.
+    4. Constructs prompt.
+    5. Calls AI.
+    6. Saves User message and AI response.
     """
-    # 1. Fetch current node
+    # 1. Fetch Session
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Session not found")
+    
+    # 2. Save User Message
+    save_message(session_id, session.user_id, query)
+    
+    # 3. Fetch Context (Tree + Node)
+    chatbot = get_chatbot(session.chatbot_id)
+    tree_json = get_chatbot_tree(session.chatbot_id)
     current_node = db.session.get(Node, current_node_id)
-    if not current_node or current_node.chatbot_id != chatbot_id:
+    
+    if not current_node or current_node.chatbot_id != session.chatbot_id:
         raise ValueError("Node not found or does not belong to this chatbot")
         
-    # 2. Fetch children
-    children = Node.query.filter_by(parent_node_id=current_node_id).all()
+    # 4. Fetch History (Last 10 messages)
+    # Exclude the message we just saved to avoid duplication in prompt if needed, 
+    # but actually we want it in history? No, usually prompt is "History + New Query".
+    # So we fetch history BEFORE the current query, or just all messages and format them.
+    # Let's fetch all previous messages (excluding the one we just saved).
+    # Actually, simpler: Fetch last N messages.
+    messages = Message.query.filter_by(chat_session_id=session_id).order_by(Message.created_at.desc()).limit(10).all()
+    messages.reverse() # Oldest first
     
-    # 3. Construct Context
-    context_parts = []
-    context_parts.append(f"Current Topic: {current_node.label}")
+    # 5. Construct Prompt
+    # System Instruction
+    system_prompt = (
+        f"You are a helpful support assistant for the chatbot '{chatbot.title}'. "
+        "Your goal is to answer user questions based STRICTLY on the provided Knowledge Base. "
+        "If the answer is not in the Knowledge Base, politely say you don't know."
+    )
+    
+    # Knowledge Base (Full Tree)
+    import json
+    kb_str = json.dumps(tree_json, indent=2)
+    
+    # Current Context
+    node_context = f"User is currently viewing node: '{current_node.label}'"
     if current_node.content:
-        context_parts.append(f"Details: {current_node.content}")
+        node_context += f" - Content: {current_node.content}"
         
-    if children:
-        context_parts.append("Sub-topics:")
-        for child in children:
-            child_info = f"- {child.label}"
-            if child.content:
-                child_info += f": {child.content}"
-            context_parts.append(child_info)
-            
-    context = "\n".join(context_parts)
+    # History
+    history_str = ""
+    for msg in messages:
+        # Skip the current query if it's already in the list (it is, because we saved it)
+        # But we want to separate History from "User Question".
+        # So let's exclude the very last message if it matches our query? 
+        # Or just treat the last message as the "User Question" in the prompt structure?
+        # Let's format history up to the current query.
+        role = "User" if msg.sender_type == 'user' else "AI"
+        history_str += f"{role}: {msg.content}\n"
+        
+    # Final Prompt Construction
+    full_prompt = (
+        f"{system_prompt}\n\n"
+        f"--- Knowledge Base ---\n{kb_str}\n\n"
+        f"--- Current Context ---\n{node_context}\n\n"
+        f"--- Conversation History ---\n{history_str}\n"
+        f"--- User Question ---\n{query}" # Redundant if in history, but emphasizes the task.
+    )
     
-    # 4. Call AI
-    return generate_response(context, query)
+    # 6. Call AI
+    complex_context = (
+        f"{system_prompt}\n\n"
+        f"--- Knowledge Base ---\n{kb_str}\n\n"
+        f"--- Current Context ---\n{node_context}\n\n"
+        f"--- Conversation History ---\n{history_str}"
+    )
     
+    ai_response_text = generate_response(complex_context, query)
+    
+    # 7. Save AI Response
+    
+    ai_msg = Message(
+        chat_session_id=session_id,
+        sender_id=None,
+        sender_type='ai',
+        content=ai_response_text,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.session.add(ai_msg)
+    db.session.commit()
+    
+    return ai_response_text

@@ -17,7 +17,7 @@ Located in the `tests/` directory, these tests use `pytest` and an in-memory SQL
 ### Key Test Suites:
 -   **`test_routes.py`**: Verifies REST API endpoints (Registration, Login, Chatbot CRUD). Checks for correct HTTP status codes (200, 201, 400, 401) and JSON response structures.
 -   **`test_services.py`**: Tests core business logic (User authentication, Chatbot tree validation, Database operations).
--   **`test_ai_integration.py`**: Mocks the Google Gemini API to verify that the backend correctly constructs prompts and handles AI responses.
+-   **`test_ai_integration.py`**: Mocks the Google Gemini API to verify that the backend correctly constructs prompts with full context (tree + history) and handles AI responses statefully.
 
 > **Note**: Real-time Chat (Socket.IO) functionality is verified via the **End-to-End Verification** script, as unit testing WebSockets with in-memory databases can be unreliable.
 
