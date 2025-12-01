@@ -72,6 +72,7 @@ For more options (e.g. running only unit tests or only E2E), see [TESTING.md](TE
 - `PUT /chatbots/<id>` (Update tree)
 - `POST /chat-sessions` (Create a new support chat session)
 - `POST /chat-sessions/<session_id>/ask` (Stateful AI interaction)
+- `POST /chat-sessions/<session_id>/resolve` (Mark session as resolved)
 
 ### Socket.IO Events
 - `connect`: Authenticate user.

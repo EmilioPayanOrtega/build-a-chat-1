@@ -11,7 +11,6 @@ main = Blueprint('main', __name__)
 
 @main.route('/auth/register', methods=['POST'])
 def register():
-    
     data = request.json
     try:
         user = register_user(data.get('username'), data.get('email'), data.get('password'), data.get('role', 'user'))
@@ -23,7 +22,6 @@ def register():
 
 @main.route('/auth/login', methods=['POST'])
 def login():
-    
     data = request.json
     try:
         # Support login by username or email
@@ -44,7 +42,6 @@ def logout():
 
 @main.route('/chat-sessions', methods=['POST'])
 def create_chat_session_route():
-        
     data = request.json
     chatbot_id = data.get('chatbot_id')
     
@@ -96,7 +93,6 @@ def ask_session_ai_route(session_id):
 
 @main.route('/chatbots', methods=['POST'])
 def create_chatbot_route():
-    
     data = request.json
     try:
         if not current_user.is_authenticated:
@@ -122,7 +118,6 @@ def create_chatbot_route():
 
 @main.route('/chatbots/<int:chatbot_id>', methods=['GET'])
 def get_chatbot_route(chatbot_id):
-    
     chatbot = get_chatbot(chatbot_id)
     if not chatbot:
         return jsonify({'success': False, 'error': 'Chatbot not found'}), 404
@@ -152,7 +147,6 @@ def list_chatbots_route():
 
 @main.route('/chatbots/<int:chatbot_id>', methods=['DELETE'])
 def delete_chatbot_route(chatbot_id):
-
     data = request.json # Need user_id for auth
     user_id = data.get('user_id')
 
@@ -181,3 +175,16 @@ def list_creator_sessions_route():
             'created_at': s.created_at.isoformat()
         } for s in sessions]
     }), 200
+
+from .services import resolve_chat_session
+
+@main.route('/chat-sessions/<int:session_id>/resolve', methods=['POST'])
+@login_required
+def resolve_chat_session_route(session_id):
+    try:
+        resolve_chat_session(session_id, current_user.id)
+        return jsonify({'success': True, 'msg': 'Chat session resolved'}), 200
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 403 # Unauthorized or Not Found
+    except Exception as e:
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500

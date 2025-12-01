@@ -251,10 +251,13 @@ def ask_chatbot_session(session_id, current_node_id, query):
 
 def get_creator_sessions(creator_id):
     """
-    Returns all chat sessions for chatbots owned by the creator.
+    Returns all chat sessions for chatbots owned by the creator, excluding resolved ones.
     """
     # Join ChatSession with Chatbot to filter by creator_id
-    sessions = db.session.query(ChatSession).join(Chatbot).filter(Chatbot.creator_id == creator_id).all()
+    sessions = db.session.query(ChatSession).join(Chatbot).filter(
+        Chatbot.creator_id == creator_id,
+        ChatSession.status != 'resolved'
+    ).all()
     return sessions
 
 def switch_session_to_human(session_id):
@@ -266,5 +269,21 @@ def switch_session_to_human(session_id):
         raise ValueError("Session not found")
     
     session.type = 'human_support'
+    db.session.commit()
+    return session
+
+def resolve_chat_session(session_id, user_id):
+    """
+    Marks a chat session as resolved.
+    """
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Session not found")
+    
+    # Check permission (must be participant)
+    if not validate_session_access(session_id, user_id):
+        raise ValueError("Unauthorized")
+
+    session.status = 'resolved'
     db.session.commit()
     return session
