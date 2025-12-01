@@ -116,6 +116,9 @@ def create_chat_session(chatbot_id, user_id, session_type='human_support'):
 def get_chat_session(session_id):
     return db.session.get(ChatSession, session_id)
 
+def get_creator_sessions(creator_id):
+    return ChatSession.query.join(Chatbot).filter(Chatbot.creator_id == creator_id).all()
+
 def validate_session_access(session_id, user_id):
     """
     Checks if the user is a participant (User or Creator) of the session.
@@ -153,7 +156,17 @@ def save_message(session_id, sender_id, content):
     db.session.commit()
     return message
 
+def switch_session_to_human(session_id):
+    session = get_chat_session(session_id)
+    if not session:
+        raise ValueError("Session not found")
+    session.type = 'human_support'
+    db.session.commit()
+    return session
+
 def ask_chatbot_session(session_id, current_node_id, query):
+    from . import socketio
+    from flask_socketio import emit
     """
     Stateful AI chat.
     1. Fetches session and validates.
@@ -161,15 +174,15 @@ def ask_chatbot_session(session_id, current_node_id, query):
     3. Fetches conversation history.
     4. Constructs prompt.
     5. Calls AI.
-    6. Saves User message and AI response.
+    6. Saves AI response.
     """
     # 1. Fetch Session
     session = get_chat_session(session_id)
     if not session:
         raise ValueError("Session not found")
     
-    # 2. Save User Message
-    save_message(session_id, session.user_id, query)
+    # User message is already saved via socket event before calling this API
+    # save_message(session_id, session.user_id, query)
     
     # 3. Fetch Context (Tree + Node)
     chatbot = get_chatbot(session.chatbot_id)
@@ -180,11 +193,6 @@ def ask_chatbot_session(session_id, current_node_id, query):
         raise ValueError("Node not found or does not belong to this chatbot")
         
     # 4. Fetch History (Last 10 messages)
-    # Exclude the message we just saved to avoid duplication in prompt if needed, 
-    # but actually we want it in history? No, usually prompt is "History + New Query".
-    # So we fetch history BEFORE the current query, or just all messages and format them.
-    # Let's fetch all previous messages (excluding the one we just saved).
-    # Actually, simpler: Fetch last N messages.
     messages = Message.query.filter_by(chat_session_id=session_id).order_by(Message.created_at.desc()).limit(10).all()
     messages.reverse() # Oldest first
     
@@ -208,11 +216,6 @@ def ask_chatbot_session(session_id, current_node_id, query):
     # History
     history_str = ""
     for msg in messages:
-        # Skip the current query if it's already in the list (it is, because we saved it)
-        # But we want to separate History from "User Question".
-        # So let's exclude the very last message if it matches our query? 
-        # Or just treat the last message as the "User Question" in the prompt structure?
-        # Let's format history up to the current query.
         role = "User" if msg.sender_type == 'user' else "AI"
         history_str += f"{role}: {msg.content}\n"
         
@@ -222,7 +225,7 @@ def ask_chatbot_session(session_id, current_node_id, query):
         f"--- Knowledge Base ---\n{kb_str}\n\n"
         f"--- Current Context ---\n{node_context}\n\n"
         f"--- Conversation History ---\n{history_str}\n"
-        f"--- User Question ---\n{query}" # Redundant if in history, but emphasizes the task.
+        f"--- User Question ---\n{query}"
     )
     
     # 6. Call AI
@@ -236,7 +239,6 @@ def ask_chatbot_session(session_id, current_node_id, query):
     ai_response_text = generate_response(complex_context, query)
     
     # 7. Save AI Response
-    
     ai_msg = Message(
         chat_session_id=session_id,
         sender_id=None,
@@ -246,6 +248,10 @@ def ask_chatbot_session(session_id, current_node_id, query):
     )
     db.session.add(ai_msg)
     db.session.commit()
+    
+    # 8. Emit to Room
+    room = f"session_{session_id}"
+    socketio.emit('message', {'user_id': None, 'content': ai_response_text}, room=room)
     
     return ai_response_text
 

@@ -105,7 +105,7 @@ const messages = ref<Message[]>([
 ]);
 
 const newMessage = ref('');
-const treeData = ref(null);
+const treeData = ref<any>(null);
 const chatbotTitle = ref('');
 const loading = ref(true);
 const error = ref('');
@@ -219,19 +219,20 @@ async function sendMessage() {
 
     // 2. Request AI response
     try {
-      const response = await fetch(`/api/chatbots/${chatbotId}/ask-ai`, {
+      const response = await fetch(`/api/chat-sessions/${sessionId.value}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          current_node_id: 1, // TODO: Track current node properly
+          current_node_id: treeData.value?.id || 1, 
           query: content
         })
       });
       const data = await response.json();
-      if (data.success) {
-        messages.value.push({ text: data.response, isUser: false });
-        scrollToBottom();
+      if (!data.success) {
+        console.error('AI Error:', data.error);
+        messages.value.push({ text: '[Error de AI]: ' + data.error, isUser: false });
       }
+      // AI response will be received via socket
     } catch (e) {
       console.error('AI Error', e);
     }

@@ -8,7 +8,7 @@
           Descubre asistentes inteligentes creados por la comunidad o crea el tuyo propio.
         </p>
       </div>
-      <RouterLink to="/create-chatbot" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2">
+      <RouterLink v-if="canCreateChatbots" to="/create-chatbot" class="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
         Crear nuevo chatbot
       </RouterLink>
@@ -73,6 +73,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useAuth } from '../store/auth';
+
+const { canCreateChatbots } = useAuth();
 
 interface Chatbot {
   id: number;
