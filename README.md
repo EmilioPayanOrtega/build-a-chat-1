@@ -1,7 +1,7 @@
-# InfoMap Chatbot Platform
+# Build a chat
 
 ## Introduction
-The **InfoMap Chatbot Platform** facilitates the creation of mapped-information integrated with chatbots. It allows creators to build hierarchical information trees that users can explore visually or query via an AI assistant. The platform is designed to be easily exposed to the general public, enabling fast data querying through both drill-down navigation and conversational interfaces.
+**Build a chat** facilitates the creation of mapped-information integrated with chatbots. It allows creators to build hierarchical information trees that users can explore visually or query via an AI assistant. The platform is designed to be easily exposed to the general public, enabling fast data querying through both drill-down navigation and conversational interfaces.
 
 ## System Architecture
 The system follows a standard Client-Server architecture with real-time capabilities.

@@ -1,6 +1,6 @@
-# InfoMap Backend
+# Build a chat Backend
 
-The backend for the InfoMap Chatbot Platform, built with Flask, Socket.IO, and MySQL.
+The backend for **Build a chat**, built with Flask, Socket.IO, and MySQL.
 
 ## Setup
 
