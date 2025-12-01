@@ -30,6 +30,7 @@ The backend for **Build a chat**, built with Flask, Socket.IO, and MySQL.
     DB_PASSWORD=your_password
     DB_NAME=chatbotdb
     DB_PORT=3306
+    GEMINI_API_KEY=your_gemini_api_key
     ```
 
 ### Database Setup
@@ -63,8 +64,8 @@ This runs all tests using `pytest` and an in-memory SQLite database, ensuring no
 
 ### Chatbots
 - `GET /chatbots?search=xyz` (Public search)
-- `GET /chatbots/<id>` (Fetch tree data)
-- `POST /chatbots` (Create new bot - accepts JSON tree)
+- `GET /chatbots/<id>` (Fetch tree data - returns nested JSON)
+- `POST /chatbots` (Create new bot - accepts nested JSON tree)
 - `PUT /chatbots/<id>` (Update tree)
 - `POST /chatbots/<id>/ask-ai` (Gemini interaction)
 

@@ -124,6 +124,7 @@ Manages the state of a conversation.
     ```
 - **Backend:** Validates the JSON and recursively creates Nodes in the DB.
 - **Data Retrieval:** When a user loads a chatbot: `SELECT * FROM nodes WHERE chatbot_id = X;`
+    - **Backend Output:** The backend converts the flat list of nodes back into the **nested JSON structure** before sending it to the frontend.
 - **Frontend Visualization:** Receive the flat list of nodes and use a utility function (e.g., `arrayToTree`) to convert them into a hierarchical object for the visualization library.
 - **Visualization Library:** Use D3.js or Vue Flow (highly recommended for Vue) to render the interactive tree on the left/center of the screen.
 
