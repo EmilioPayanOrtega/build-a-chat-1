@@ -198,8 +198,44 @@ def run_verification():
             assert payload_u['content'] == 'Hello Creator!'
             print("    -> User received echo.")
 
+            # 8. Request Human Support
+            print("\n[8] Requesting Human Support...")
+            user_socket.emit('request_human', {'session_id': session_id, 'user_id': user_id})
+            
+            # Verify status update
+            received_u = user_socket.get_received()
+            status_event = next((e for e in received_u if e['name'] == 'status'), None)
+            assert status_event is not None
+            # Handle args list/dict
+            args = status_event['args']
+            payload = args[0] if isinstance(args, list) else args
+            assert "Human support requested" in payload['msg']
+            
+            session_event = next((e for e in received_u if e['name'] == 'session_updated'), None)
+            assert session_event is not None
+            args = session_event['args']
+            payload = args[0] if isinstance(args, list) else args
+            assert payload['type'] == 'human_support'
+            print("    -> Human support requested successfully.")
+
             user_socket.disconnect()
             creator_socket.disconnect()
+            
+            # 9. Resolve Chat
+            print("\n[9] Resolving Chat...")
+            # Creator resolves the chat
+            res = creator_http.post(f'/api/chat-sessions/{session_id}/resolve')
+            assert res.status_code == 200
+            print("    -> Chat resolved.")
+            
+            # 10. Verify Resolution
+            print("\n[10] Verifying Resolution...")
+            res = creator_http.get('/api/creator/sessions')
+            assert res.status_code == 200
+            sessions = res.json['sessions']
+            # Should be empty or not contain session_id
+            assert not any(s['id'] == session_id for s in sessions)
+            print("    -> Resolved chat hidden from list.")
 
         except AssertionError as e:
             print(f"ASSERTION FAILED: {e}")
