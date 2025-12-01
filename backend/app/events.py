@@ -51,6 +51,32 @@ def on_message(data):
         print(f"ERROR in on_message: {e}")
         emit('error', {'msg': str(e)})
 
+@socketio.on('request_human')
+def on_request_human(data):
+    """
+    Client requests human support.
+    Data: { 'session_id': int, 'user_id': int }
+    """
+    session_id = data.get('session_id')
+    user_id = data.get('user_id')
+    
+    if not session_id or not user_id:
+        return
+
+    try:
+        if validate_session_access(session_id, user_id):
+            from .services import switch_session_to_human
+            switch_session_to_human(session_id)
+            
+            room = f"session_{session_id}"
+            emit('status', {'msg': 'Human support requested. Waiting for an agent...'}, room=room)
+            emit('session_updated', {'type': 'human_support'}, room=room)
+        else:
+            emit('error', {'msg': 'Unauthorized'})
+    except Exception as e:
+        print(f"ERROR in on_request_human: {e}")
+        emit('error', {'msg': str(e)})
+
 @socketio.on('disconnect')
 def handle_disconnect():
     print(f"Client disconnected: {request.sid}")

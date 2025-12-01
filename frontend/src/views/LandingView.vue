@@ -12,8 +12,8 @@
           Construya un Chatbot con nosotros y <span class="font-bold text-gray-700">aumente su agilidad</span>
         </p>
         <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-          <RouterLink to="/register" class="btn primary text-lg px-8 py-3 rounded-full shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
-            Comenzar ahora
+          <RouterLink :to="isAuthenticated ? '/dashboard' : '/register'" class="btn primary text-lg px-8 py-3 rounded-full shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            {{ isAuthenticated ? 'Ir al Dashboard' : 'Comenzar ahora' }}
           </RouterLink>
           <button class="px-8 py-3 rounded-full border-2 border-gray-200 text-gray-600 font-medium hover:border-gray-400 hover:text-gray-800 transition-all">
             Ver demo
@@ -33,5 +33,7 @@
 </template>
 
 <script setup lang="ts">
-// No script logic needed for this static view yet
+import { useAuth } from '../store/auth';
+
+const { isAuthenticated } = useAuth();
 </script>

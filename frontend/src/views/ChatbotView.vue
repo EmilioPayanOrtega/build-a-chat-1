@@ -65,9 +65,16 @@
           </button>
         </form>
         <div class="mt-2 text-center">
-          <button class="text-xs text-gray-400 hover:text-blue-500 transition-colors underline">
+          <button 
+            v-if="!isHumanSupport"
+            @click="requestHumanSupport"
+            class="text-xs text-gray-400 hover:text-blue-500 transition-colors underline"
+          >
             ¿Necesitas ayuda humana?
           </button>
+          <span v-else class="text-xs text-blue-500 font-medium">
+            Chat con soporte humano activo
+          </span>
         </div>
       </div>
     </div>
@@ -75,14 +82,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import TreeVisualization from '../components/TreeVisualization.vue';
+import { io, Socket } from 'socket.io-client';
+import { useAuth } from '../store/auth';
 
 const route = useRoute();
 const chatbotId = route.params.id;
+const { state: authState } = useAuth();
 
-const messages = ref([
+interface Message {
+  text: string;
+  isUser: boolean;
+}
+
+const messages = ref<Message[]>([
   { text: '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte sobre este tema?', isUser: false },
 ]);
 
@@ -91,6 +106,66 @@ const treeData = ref(null);
 const chatbotTitle = ref('');
 const loading = ref(true);
 const error = ref('');
+const isHumanSupport = ref(false);
+const sessionId = ref<number | null>(null);
+let socket: Socket | null = null;
+
+// Initialize socket connection
+function initSocket(sessId: number) {
+  // Use relative path for socket.io to go through proxy
+  socket = io({
+    path: '/socket.io',
+    transports: ['websocket', 'polling']
+  });
+
+  socket.on('connect', () => {
+    console.log('Socket connected');
+    socket?.emit('join', { 
+      session_id: sessId, 
+      user_id: authState.userId 
+    });
+  });
+
+  socket.on('message', (data: { user_id: number, content: string }) => {
+    // Only add if it's not from current user (to avoid duplication as we add optimistically)
+    if (String(data.user_id) !== String(authState.userId)) {
+      messages.value.push({ text: data.content, isUser: false });
+      scrollToBottom();
+    }
+  });
+
+  socket.on('status', (data: { msg: string }) => {
+    messages.value.push({ text: `[SISTEMA]: ${data.msg}`, isUser: false });
+    scrollToBottom();
+  });
+
+  socket.on('session_updated', (data: { type: string }) => {
+    if (data.type === 'human_support') {
+      isHumanSupport.value = true;
+    }
+  });
+
+  socket.on('error', (data: { msg: string }) => {
+    console.error('Socket error:', data.msg);
+  });
+}
+
+async function createSession() {
+  try {
+    const response = await fetch('/api/chat-sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatbot_id: chatbotId })
+    });
+    const data = await response.json();
+    if (data.success) {
+      sessionId.value = data.session_id;
+      initSocket(data.session_id);
+    }
+  } catch (e) {
+    console.error('Failed to create session', e);
+  }
+}
 
 async function fetchChatbotData() {
   try {
@@ -112,25 +187,74 @@ async function fetchChatbotData() {
   }
 }
 
-function sendMessage() {
-  if (!newMessage.value.trim()) return;
+async function sendMessage() {
+  if (!newMessage.value.trim() || !sessionId.value) return;
   
-  // Add user message
-  messages.value.push({ text: newMessage.value, isUser: true });
-  
-  const userText = newMessage.value;
+  const content = newMessage.value;
   newMessage.value = '';
+  
+  // Optimistic update
+  messages.value.push({ text: content, isUser: true });
+  scrollToBottom();
 
-  // Mock AI response
-  setTimeout(() => {
-    messages.value.push({ 
-      text: `Entiendo que preguntas sobre "${userText}". Como soy una demo, aún no puedo analizar el árbol de conocimiento real, pero pronto podré hacerlo.`, 
-      isUser: false 
+  if (isHumanSupport.value) {
+    // Send via socket for human chat
+    socket?.emit('message', {
+      session_id: sessionId.value,
+      user_id: authState.userId,
+      content: content
     });
-  }, 1000);
+  } else {
+    // AI Chat flow
+    // 1. Save user message via socket (or API, but socket is easier if connected)
+    socket?.emit('message', {
+      session_id: sessionId.value,
+      user_id: authState.userId,
+      content: content
+    });
+
+    // 2. Request AI response
+    try {
+      const response = await fetch(`/api/chatbots/${chatbotId}/ask-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_node_id: 1, // TODO: Track current node properly
+          query: content
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        messages.value.push({ text: data.response, isUser: false });
+        scrollToBottom();
+      }
+    } catch (e) {
+      console.error('AI Error', e);
+    }
+  }
 }
 
-onMounted(() => {
-  fetchChatbotData();
+function requestHumanSupport() {
+  if (!sessionId.value) return;
+  socket?.emit('request_human', {
+    session_id: sessionId.value,
+    user_id: authState.userId
+  });
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    const container = document.querySelector('.overflow-y-auto');
+    if (container) container.scrollTop = container.scrollHeight;
+  });
+}
+
+onMounted(async () => {
+  await fetchChatbotData();
+  await createSession();
+});
+
+onUnmounted(() => {
+  if (socket) socket.disconnect();
 });
 </script>
