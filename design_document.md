@@ -1,4 +1,4 @@
-# Software Design Document: InfoMap Chatbot Platform
+# Software Design Document: Build a chat
 
 ## 1. Introduction
 The platform allows creators to build "Chatbots" based on hierarchical information trees. Users can explore this map, query an AI regarding the content, or escalate to a human chat with the creator.
