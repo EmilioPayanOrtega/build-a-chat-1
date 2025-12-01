@@ -1,10 +1,10 @@
 <template>
-  <section class="auth-page">
+  <section class="w-full flex justify-center items-center animate-fade-in">
     <div class="card">
       <h2 class="page-title">Inicio de sesión</h2>
-      <form @submit.prevent="onSubmit" novalidate>
+      <form @submit.prevent="onSubmit" novalidate class="space-y-6">
         <div class="field">
-          <label for="identifier">Usuario o correo electrónico</label>
+          <label for="identifier" class="text-sm font-medium text-gray-700 mb-1">Usuario o correo electrónico</label>
           <input
             id="identifier"
             v-model.trim="identifier"
@@ -12,14 +12,14 @@
             name="identifier"
             type="text"
             autocomplete="username"
-            placeholder="Usuario o correo electrónico"
+            placeholder="Ingresa tu usuario"
             required
           />
-          <span v-if="showErrors && !identifier" class="input-error">Campo obligatorio</span>
+          <span v-if="showErrors && !identifier" class="text-red-500 text-xs mt-1">Campo obligatorio</span>
         </div>
 
         <div class="field">
-          <label for="password">Contraseña</label>
+          <label for="password" class="text-sm font-medium text-gray-700 mb-1">Contraseña</label>
           <input
             id="password"
             v-model="password"
@@ -27,25 +27,33 @@
             name="password"
             type="password"
             autocomplete="current-password"
-            placeholder="Contraseña"
+            placeholder="••••••••"
             required
             minlength="6"
           />
-          <span v-if="showErrors && !password" class="input-error">Campo obligatorio</span>
-          <span v-if="showErrors && password && password.length < 6" class="input-error">Mínimo 6 caracteres</span>
+          <span v-if="showErrors && !password" class="text-red-500 text-xs mt-1">Campo obligatorio</span>
+          <span v-if="showErrors && password && password.length < 6" class="text-red-500 text-xs mt-1">Mínimo 6 caracteres</span>
         </div>
 
-        <div style="display:flex; justify-content:center; margin-top:.5rem">
-          <button class="btn primary" type="submit" :disabled="loading">
+        <div class="pt-2">
+          <button class="btn primary w-full flex justify-center items-center gap-2" type="submit" :disabled="loading">
+            <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
             {{ loading ? 'Ingresando…' : 'Iniciar sesión' }}
           </button>
         </div>
       </form>
-      <p class="helper">
+      
+      <p class="mt-6 text-center text-sm text-gray-600">
         ¿No tienes cuenta?
-        <RouterLink to="/register">Regístrate ya</RouterLink>
+        <RouterLink to="/register" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">Regístrate ya</RouterLink>
       </p>
-      <p v-if="message" :style="{marginTop: '12px', color: messageType === 'error' ? '#b91c1c' : '#166534'}">{{ message }}</p>
+      
+      <div v-if="message" :class="['mt-4 p-3 rounded-lg text-sm text-center font-medium', messageType === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200']">
+        {{ message }}
+      </div>
     </div>
   </section>
 </template>
@@ -84,7 +92,7 @@ async function onSubmit(){
       localStorage.setItem('username', identifier.value);
       // Navigate to chat page after a brief delay
       setTimeout(() => {
-        router.push('/chat');
+        router.push('/dashboard');
       }, 1000);
     } else {
       message.value = response.error || 'Error al iniciar sesión';
@@ -98,15 +106,5 @@ async function onSubmit(){
   }
 }
 </script>
-
-<style scoped>
-.auth-page{width:100%; display:flex; justify-content:center}
-label{font-size:.95rem; color:#374151}
-.input-error {
-  color: #b91c1c;
-  font-size: .93rem;
-  padding-top: 2px;
-}
-</style>
 
 

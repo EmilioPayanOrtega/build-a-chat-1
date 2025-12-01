@@ -4,12 +4,20 @@ const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/login' },
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
   { path: '/register', name: 'register', component: () => import('../views/RegisterView.vue') },
-  { 
-    path: '/chat', 
-    name: 'chat', 
-    component: () => import('../views/ChatView.vue'),
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('../views/DashboardView.vue'),
     meta: { requiresAuth: true }
-  }
+  },
+  {
+    path: '/chatbot/:id',
+    name: 'chatbot',
+    component: () => import('../views/ChatbotView.vue'),
+    meta: { requiresAuth: true }
+  },
+  // Redirect old chat route to dashboard
+  { path: '/chat', redirect: '/dashboard' }
 ];
 
 const router = createRouter({
