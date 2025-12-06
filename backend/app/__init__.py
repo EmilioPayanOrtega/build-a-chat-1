@@ -1,3 +1,4 @@
+# backend/app/__init__.py
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -12,7 +13,7 @@ load_dotenv()
 
 socketio = SocketIO(
     cors_allowed_origins="*",
-    async_mode="eventlet",  # MUY IMPORTANTE
+    async_mode="eventlet",
     manage_session=False
 )
 
@@ -24,9 +25,15 @@ def create_app(test_config=None):
     # SECRET KEY
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-secret")
 
-    # DATABASE (Render)
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    # DATABASE (Render) - strip para quitar \n y espacios
+    raw_db_uri = os.environ.get("DATABASE_URL", "")
+    db_uri = raw_db_uri.strip()
+    if not db_uri:
+        # Fallback para desarrollo/errores: sqlite local
+        db_uri = "sqlite:///../dev.sqlite3"
+        app.logger.warning("DATABASE_URL no definida: usando SQLite de fallback")
 
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Mail
@@ -61,5 +68,18 @@ def create_app(test_config=None):
     from . import events
     import importlib
     importlib.reload(events)
+
+    # DEBUG: loguear URI (parcial, enmascarando credenciales)
+    try:
+        masked = db_uri
+        if "@" in masked:
+            # reemplaza credenciales si existen para evitar leak en logs
+            pre, post = masked.split("@", 1)
+            if ":" in pre:
+                userinfo = pre.split("://", 1)[-1]
+                masked = masked.replace(userinfo + "@", "****@")
+        app.logger.info("DB URI cargada: %s", masked)
+    except Exception:
+        pass
 
     return app
