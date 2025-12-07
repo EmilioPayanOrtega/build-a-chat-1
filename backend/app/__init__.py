@@ -2,7 +2,6 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
 from .models import db
@@ -25,18 +24,23 @@ def create_app(test_config=None):
     # SECRET KEY
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-secret")
 
-    # DATABASE (Render) - strip para quitar \n y espacios
-    raw_db_uri = os.environ.get("DATABASE_URL", "")
-    db_uri = raw_db_uri.strip()
-    if not db_uri:
-        # Fallback para desarrollo/errores: sqlite local
+    # DATABASE URL (Render)
+    raw_db_uri = os.environ.get("DATABASE_URL", "").strip()
+
+    if raw_db_uri:
+        # Render usa postgres:// → SQLAlchemy requiere postgresql://
+        if raw_db_uri.startswith("postgres://"):
+            raw_db_uri = raw_db_uri.replace("postgres://", "postgresql://", 1)
+
+        db_uri = raw_db_uri
+    else:
         db_uri = "sqlite:///../dev.sqlite3"
         app.logger.warning("DATABASE_URL no definida: usando SQLite de fallback")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Mail
+    # MAIL CONFIG
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
     app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
@@ -44,12 +48,11 @@ def create_app(test_config=None):
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
+    # Init extensions
     db.init_app(app)
     mail.init_app(app)
-
-    CORS(app, resources={r"/*": {"origins": "*"}})
-
     socketio.init_app(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # Login Manager
     login_manager = LoginManager()
@@ -64,16 +67,15 @@ def create_app(test_config=None):
     from .routes import main as main_blueprint
     app.register_blueprint(main_blueprint, url_prefix='/api')
 
-    # Event Handlers
+    # Socket events
     from . import events
     import importlib
     importlib.reload(events)
 
-    # DEBUG: loguear URI (parcial, enmascarando credenciales)
+    # Logging de la URI (enmascarada)
     try:
         masked = db_uri
         if "@" in masked:
-            # reemplaza credenciales si existen para evitar leak en logs
             pre, post = masked.split("@", 1)
             if ":" in pre:
                 userinfo = pre.split("://", 1)[-1]

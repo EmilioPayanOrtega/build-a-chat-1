@@ -24,19 +24,19 @@ Flask-SocketIO==5.5.1
 python-socketio==5.12.1
 python-engineio==4.11.2
 
-# --- Eventlet (único async engine) ---
+# --- Eventlet ---
 eventlet==0.39.1
 greenlet==3.1.1
 
-# --- Gunicorn (si usas Procfile) ---
+# --- Gunicorn ---
 gunicorn==23.0.0
 
-# --- Database ---
-mysqlclient==2.2.4
+# --- Database (PostgreSQL) ---
+psycopg2-binary==2.9.9
 Flask-SQLAlchemy==3.1.1
 SQLAlchemy==2.0.44
 
-# --- Data science (SEGUROS en Render) ---
+# --- Data science ---
 numpy==2.0.2
 pandas==2.2.3
 python-dateutil==2.9.0.post0
