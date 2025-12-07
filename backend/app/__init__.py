@@ -24,18 +24,28 @@ def create_app(test_config=None):
     # SECRET KEY
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-secret")
 
-    # DATABASE URL (Render)
+        # DATABASE URL (Render)
     raw_db_uri = os.environ.get("DATABASE_URL", "").strip()
 
     if raw_db_uri:
-        # Render usa postgres:// → SQLAlchemy requiere postgresql://
+        # Render usa postgres:// → convertir a SQLAlchemy + driver explícito para psycopg3
         if raw_db_uri.startswith("postgres://"):
-            raw_db_uri = raw_db_uri.replace("postgres://", "postgresql://", 1)
+            # convertir postgres:// -> postgresql+psycopg://
+            raw_db_uri = raw_db_uri.replace("postgres://", "postgresql+psycopg://", 1)
+        elif raw_db_uri.startswith("postgresql://"):
+            raw_db_uri = raw_db_uri.replace("postgresql://", "postgresql+psycopg://", 1)
+
+        # Asegurar SSL obligatorio en Render si no viene (Render Postgres requiere SSL)
+        if "?sslmode=" not in raw_db_uri and "?" not in raw_db_uri:
+            raw_db_uri += "?sslmode=require"
+        elif "?sslmode=" not in raw_db_uri and "?" in raw_db_uri:
+            raw_db_uri += "&sslmode=require"
 
         db_uri = raw_db_uri
     else:
         db_uri = "sqlite:///../dev.sqlite3"
         app.logger.warning("DATABASE_URL no definida: usando SQLite de fallback")
+
 
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
