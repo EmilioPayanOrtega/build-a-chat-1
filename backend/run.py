@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import send_from_directory
-from app import create_app, socketio
+from backend.app import create_app, socketio
 import os
 
 # Crear instancia de la app
