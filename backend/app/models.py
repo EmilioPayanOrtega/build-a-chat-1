@@ -5,12 +5,12 @@ from sqlalchemy import Enum
 
 db = SQLAlchemy()
 
-# === ENUMS separados (PostgreSQL friendly) ===
-user_roles_enum = Enum('admin', 'creator', 'user', name='user_roles')
-visibility_enum = Enum('public', 'private', 'link_only', name='visibility_types')
-session_types_enum = Enum('ai_conversation', 'human_support', name='session_types')
-session_status_enum = Enum('active', 'resolved', 'archived', name='session_status')
-sender_types_enum = Enum('user', 'creator', 'ai', 'system', name='sender_types')
+# === ENUMS separados (PostgreSQL friendly) cambiados a db.enum para evitar duplicacion=== 
+user_roles_enum = db.Enum('admin', 'creator', 'user', name='user_roles')
+visibility_enum = db.Enum('public', 'private', 'link_only', name='visibility_types')
+session_types_enum = db.Enum('ai_conversation', 'human_support', name='session_types')
+session_status_enum = db.Enum('active', 'resolved', 'archived', name='session_status')
+sender_types_enum = db.Enum('user', 'creator', 'ai', 'system', name='sender_types')
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'

@@ -29,9 +29,9 @@ def create_app(test_config=None):
 
     if raw_db_uri:
         # Render usa postgres:// → convertir a SQLAlchemy + driver explícito para psycopg3
-        if raw_db_uri.startswith("postgres://"):
+        if raw_db_uri.startswith("postgresql://"):
             # convertir postgres:// -> postgresql+psycopg://
-            raw_db_uri = raw_db_uri.replace("postgres://", "postgresql+psycopg://", 1)
+            raw_db_uri = raw_db_uri.replace("postgresql://", "postgresql+psycopg://", 1)
         elif raw_db_uri.startswith("postgresql://"):
             raw_db_uri = raw_db_uri.replace("postgresql://", "postgresql+psycopg://", 1)
 
@@ -68,7 +68,14 @@ def create_app(test_config=None):
     login_manager = LoginManager()
     login_manager.init_app(app)
 
-    from .models import User
+    # Importar modelos para que SQLAlchemy los registre
+    from .models import User, Chatbot, Node, ChatSession, Message
+    
+    # Crear las tablas automaticamente si no existen
+    with app.app_context():
+        db.create_all()
+        app.logger.info("Tablas de la base de datos creadas o verificadas.")
+    
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
