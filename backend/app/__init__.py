@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
+import logging # Temporal, solo para ver logs
 from dotenv import load_dotenv
 from .models import db
 from flask_login import LoginManager
@@ -21,6 +22,11 @@ mail = Mail()
 def create_app(test_config=None):
     app = Flask(__name__)
 
+    # Temporal. Imprime los logs en Render
+    if not app.debug:
+        app.longer.addHandler(logging.StreamHandler())
+        app.longer.setLevel(logging.INFO)
+    
     # SECRET KEY
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-secret")
 

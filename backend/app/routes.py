@@ -70,17 +70,25 @@ def logout():
 @main.route('/chat-sessions', methods=['POST'])
 def create_chat_session_route():
     data = request.json
-    chatbot_id = data.get('chatbot_id')
+    raw_chatbot_id = data.get('chatbot_id')
     
-    if not chatbot_id:
+    if not raw_chatbot_id:
         return jsonify({'success': False, 'error': 'Falta chatbot_id'}), 400
         
     if not current_user.is_authenticated:
         return jsonify({'success': False, 'error': 'No autorizado'}), 401
         
     try:
+        chatbot_id = int(raw_chatbot_id) # Conversión, Forzar a ser entero antes de la lógica
         session = create_chat_session(chatbot_id, current_user.id)
-        return jsonify({'success': True, 'session_id': session.id, 'type': session.type}), 201
+        return jsonify({
+            'success': True, 
+            'session_id': session.id, 
+            'type': str(session.type.value if hasattr(session.type, 'value') else session.type)
+        }), 201
+    
+    except ValueError:
+        return jsonify({'success': False, 'error': 'El chatbot_id debe ser un número válido'}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
