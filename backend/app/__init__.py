@@ -24,8 +24,8 @@ def create_app(test_config=None):
 
     # Temporal. Imprime los logs en Render
     if not app.debug:
-        app.longer.addHandler(logging.StreamHandler())
-        app.longer.setLevel(logging.INFO)
+        app.logger.addHandler(logging.StreamHandler())
+        app.logger.setLevel(logging.INFO)
     
     # SECRET KEY
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "fallback-secret")
