@@ -30,7 +30,7 @@ def generate_response(context: str, query: str) -> str:
     if api_key:
         try:
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-flash-latest')
             response = model.generate_content(full_prompt)
             return response.text
         except Exception as e:
